@@ -10,7 +10,8 @@
     "test": "jest"
   },
   "dependencies": {
-    "@react-native/new-app-screen": "0.87.1",
+    "@trainiq/domain": "workspace:*",
+    "@trainiq/recommendation": "workspace:*",
     "@trainiq/types": "workspace:*",
     "react": "19.2.3",
     "react-native": "0.87.1",
