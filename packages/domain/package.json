@@ -1,0 +1,10 @@
+{
+  "name": "@trainiq/domain",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@trainiq/types": "workspace:*"
+  }
+}
