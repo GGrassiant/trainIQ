@@ -1,12 +1,38 @@
 # TrainIQ
 
-TrainIQ is a companion app for [Intervals.icu](https://intervals.icu). Given how much
-time you have today, your recent training load, fatigue/form, training history, and
-planned workouts, it aims to answer: **what is the best training session I can do
-today?**
+TrainIQ is a training-planning companion for [Intervals.icu](https://intervals.icu).
+It is designed to help an athlete plan training around real life, then continuously
+adapt that plan as availability, weather, and training status change.
 
-This is a learning/portfolio project. No product features are implemented yet — this
-is just the monorepo bootstrap.
+Intervals.icu remains the source of truth for training data and the calendar. TrainIQ
+is intended to be the decision-making and adaptation layer on top of that data.
+
+## Product vision
+
+The planned workflow starts with a weekly review of availability, recent training,
+fatigue, fitness, form, goals, weather, and already planned workouts. TrainIQ will
+help turn that context into a realistic weekly plan.
+
+The initial sports are cycling and running. They will be considered together when
+distributing training across the week, rather than as independent plans.
+
+When a workout is needed, TrainIQ will prefer an appropriate existing workout from
+the athlete's Intervals.icu library. It will only generate a new workout when no
+suitable existing workout is available. A selected workout may then be added to the
+Intervals.icu calendar.
+
+As the week changes — for example through less available time, different weather,
+unexpected fatigue, a missed workout, or updated availability — TrainIQ is intended
+to adapt the remaining plan instead of making isolated daily recommendations.
+
+AI is planned as a reasoning and explanation layer. It will not be the authority for
+hard training constraints.
+
+## Status
+
+TrainIQ is an early learning/portfolio project. The workflow above describes product
+goals and planned functionality; it is not implemented yet. The repository currently
+contains the web and mobile monorepo bootstrap.
 
 ## Structure
 
