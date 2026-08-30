@@ -34,6 +34,17 @@ TrainIQ is an early learning/portfolio project. The workflow above describes pro
 goals and planned functionality; it is not implemented yet. The repository currently
 contains the web and mobile monorepo bootstrap.
 
+## Development process
+
+TrainIQ is being built with AI-assisted coding tools (Claude Code) as part of the normal
+development workflow, alongside standard engineering practices — code review, type
+checking, automated tests, and manual verification on web and iOS before changes are
+considered done.
+
+This is a statement about how the codebase is built, not about the product: TrainIQ
+itself does not use AI today. The "AI as a reasoning and explanation layer" item under
+Product vision above is a future capability, not something implemented yet.
+
 ## Structure
 
 ```
