@@ -7,6 +7,15 @@ adapt that plan as availability, weather, and training status change.
 Intervals.icu remains the source of truth for training data and the calendar. TrainIQ
 is intended to be the decision-making and adaptation layer on top of that data.
 
+## Product inspiration
+
+TrainIQ is inspired by the training-planning approach of [Join
+Cycling](https://join.cc/), particularly its focus on adapting structured training to an
+athlete's goals, fitness and real-life constraints.
+
+TrainIQ explores a broader version of this idea across cycling and running,
+with Intervals.icu as the source of truth for training data and scheduling.
+
 ## Product vision
 
 The planned workflow starts with a weekly review of availability, recent training,
