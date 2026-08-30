@@ -38,6 +38,7 @@ jobs:
           pnpm exec tsc -p packages/types/tsconfig.json --noEmit
           pnpm exec tsc -p packages/domain/tsconfig.json --noEmit
           pnpm exec tsc -p packages/recommendation/tsconfig.json --noEmit
+          pnpm --filter web exec next typegen
           pnpm --filter web exec tsc --noEmit
 
       - name: Test
