@@ -25,6 +25,18 @@ const GOAL_ALIGNED_FOCUS: Record<EnduranceSport, WorkoutFocus[]> = {
 
 const STRENGTH_MODERATE_MINUTES = 45;
 
+/** Vitest sets this for every test run, so `planWeek()`'s debug logs stay out of test output without extra config. */
+const DEBUG_LOGS_ENABLED = process.env.VITEST === undefined;
+
+function logStage(stage: string, data?: unknown): void {
+  if (!DEBUG_LOGS_ENABLED) return;
+  if (data === undefined) {
+    console.log(`[TrainIQ] ${stage}`);
+  } else {
+    console.log(`[TrainIQ] ${stage}`, data);
+  }
+}
+
 /** The workout id a day actually used, if it recommended one — nothing to avoid-repeat against for fixed/unresolved days. */
 function usedWorkoutId(day: TrainingDay): string | undefined {
   return day.status === "recommended" ? day.workout.id : undefined;
@@ -45,11 +57,19 @@ function isQualityDay(day: TrainingDay): day is RecommendedTrainingDay {
  * silently returning fewer days without saying why.
  */
 export function planWeek(context: PlanningContext): WeeklyPlan {
+  logStage("planWeek:start", { weekStartDate: context.weekStartDate });
+
   const { availability, weather, trainingLoad, goals, workoutLibrary, weekStartDate } = context;
 
   const selectedDays = selectTrainingDays(availability);
+  logStage("selectTrainingDays", { selectedDays });
+
   const longestDay = findLongestSessionDay(selectedDays, availability);
+  logStage("findLongestSessionDay", { longestDay });
+
   const sportByDay = assignSports({ selectedDays, availability, goals });
+  logStage("assignSports", { sportByDay });
+
   const intensityByDay = planIntensity({
     selectedDays,
     sportByDay,
@@ -59,8 +79,12 @@ export function planWeek(context: PlanningContext): WeeklyPlan {
     goals,
     longestDay,
   });
+  logStage("planIntensity", {
+    intensityByDay: Object.fromEntries(selectedDays.map((day) => [day, intensityByDay[day].targetIntensity])),
+  });
 
   const preferredGoal = primaryEnduranceGoal(goals);
+  logStage("primaryEnduranceGoal", { sport: preferredGoal?.sport });
 
   const enduranceDays = selectedDays.reduce<{ days: TrainingDay[]; previous?: TrainingDay }>(
     (acc, day) => {
@@ -132,10 +156,15 @@ export function planWeek(context: PlanningContext): WeeklyPlan {
     },
     { days: [] }
   ).days;
+  logStage("buildTrainingDays", {
+    statusByDay: Object.fromEntries(enduranceDays.map((d) => [d.dayOfWeek, d.status])),
+  });
 
   const hardDays = new Set(enduranceDays.filter(isQualityDay).map((d) => d.dayOfWeek));
 
   const strengthDayOfWeek = selectStrengthDay(selectedDays, availability, hardDays);
+  logStage("selectStrengthDay", { strengthDayOfWeek });
+
   const strengthDay = strengthDayOfWeek ? buildStrengthDay(strengthDayOfWeek, context) : undefined;
   const strengthKeptApart =
     strengthDayOfWeek !== undefined &&
@@ -168,6 +197,12 @@ export function planWeek(context: PlanningContext): WeeklyPlan {
     weatherAdjustedDays: selectedDays.filter((day) => intensityByDay[day].weatherAdjusted),
     strengthDay,
     strengthKeptApart,
+  });
+  logStage("buildWeekSummary", { summary });
+
+  logStage("planWeek:complete", {
+    totalTrainingDays: plannedEnduranceDays.length,
+    totalDurationMinutes,
   });
 
   return {
