@@ -18,3 +18,8 @@ apps/mobile/android/app/build/
 
 # TypeScript
 *.tsbuildinfo
+
+# env files (per-app .gitignore files handle their own exceptions, e.g. .env.example)
+.env
+.env.local
+.env.*.local

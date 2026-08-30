@@ -6,11 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest run"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
     "@trainiq/domain": "workspace:*",
+    "@trainiq/intervals": "workspace:*",
     "@trainiq/recommendation": "workspace:*",
     "@trainiq/types": "workspace:*",
     "class-variance-authority": "^0.7.1",
@@ -32,7 +34,8 @@
     "eslint-config-next": "16.3.3",
     "postcss": "^8.5.26",
     "tailwindcss": "^4.3.3",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.11"
   },
   "packageManager": "pnpm@10.11.0",
   "engines": {

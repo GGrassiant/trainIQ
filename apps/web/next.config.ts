@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
     "@trainiq/types",
     "@trainiq/domain",
     "@trainiq/recommendation",
+    "@trainiq/intervals",
   ],
 };
 

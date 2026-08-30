@@ -62,9 +62,10 @@ apps/
   mobile/         React Native (Community CLI) + TypeScript, no Expo
 
 packages/
-  types/          @trainiq/types       — shared, platform-independent TS types
-  domain/         @trainiq/domain      — shared domain logic (empty for now)
-  recommendation/ @trainiq/recommendation — recommendation engine (empty for now)
+  types/          @trainiq/types          — shared, platform-independent TS types
+  domain/         @trainiq/domain         — shared domain logic (mock data + PlanningContext composition)
+  recommendation/ @trainiq/recommendation — recommendation engine (planWeek())
+  intervals/      @trainiq/intervals      — read-only Intervals.icu client + mappers (V0.3)
 ```
 
 Package manager: **pnpm workspaces**, with `node-linker=hoisted` in `.npmrc` (chosen to
@@ -135,6 +136,30 @@ pnpm --filter mobile ios     # in another terminal
 ```
 
 Android tooling is not documented yet — this bootstrap focuses on web + iOS.
+
+## Intervals.icu integration (V0.3)
+
+TrainIQ's first Intervals.icu integration is **read-only**: `@trainiq/intervals` fetches
+wellness (CTL/ATL) and the previous ~28 days of activities, and maps them into
+TrainIQ's own `TrainingLoadContext` — replacing only the mock training-load portion of
+`PlanningContext`. `planWeek()` itself is unchanged and has no knowledge that
+Intervals.icu exists; it consumes whatever `PlanningContext` it's given.
+
+Calendar sync, workout-library import, writing back to Intervals.icu, and OAuth are not
+implemented yet — this integration only reads wellness and activity data.
+
+**Local setup:**
+
+1. Generate a personal API key from Intervals.icu (Settings > Developer).
+2. Copy `apps/web/.env.example` to `apps/web/.env.local` and set `INTERVALS_API_KEY`.
+3. `apps/web/.env.local` is gitignored — never commit a real key, and never put it in a
+   `NEXT_PUBLIC_*` variable or in client-side code.
+
+The API key is only ever read server-side (`apps/web/lib/server/intervals-planning-context.ts`,
+used by the `app/api/intervals/planning-context` route handler) and is never sent to the
+browser or bundled into the mobile app. `@trainiq/intervals` itself takes credentials via
+dependency injection — it has no knowledge of environment variables or of any specific
+runtime (web, mobile, or otherwise).
 
 ## Verifying the shared packages
 
