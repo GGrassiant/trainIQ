@@ -150,6 +150,26 @@ describe("planWeek", () => {
     });
   });
 
+  describe("reasoning accurately reflects low-TSB behavior (real-data smoke test cleanup)", () => {
+    it("avoids hard sessions but still allows moderate sessions, and the rationale says so truthfully", () => {
+      const base = buildMockPlanningContext();
+      const depletedForm: PlanningContext = {
+        ...base,
+        trainingLoad: { ...base.trainingLoad, tsb: -31.955060000000003 },
+      };
+
+      const plan = planWeek(depletedForm);
+
+      expect(plan.days.some(isQuality)).toBe(false);
+      expect(plan.days.some((d) => d.status === "recommended" && d.workout.intensity === "moderate")).toBe(true);
+
+      expect(plan.rationale).toContain("hard sessions were avoided this week to support recovery");
+      expect(plan.rationale.toLowerCase()).not.toContain("stays easy across the board");
+      expect(plan.rationale).toContain("TSB -32");
+      expect(plan.rationale).not.toContain("-31.955060000000003");
+    });
+  });
+
   describe("fixed commitments are hard constraints (P1 #3)", () => {
     it("cannot be replaced by a better-scoring recommended workout, and keeps its own duration", () => {
       const base = buildMockPlanningContext();

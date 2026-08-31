@@ -45,6 +45,13 @@ export function mondayOfLocalWeek(date: Date): string {
   return formatLocalDate(monday);
 }
 
+/** The Monday (local time) of the week following the one containing `date`, as "YYYY-MM-DD" — used to plan the athlete's upcoming week rather than the current one. */
+export function mondayOfNextLocalWeek(date: Date): string {
+  const [year, month, day] = mondayOfLocalWeek(date).split("-").map(Number);
+  const nextMonday = new Date(year, month - 1, day + 7);
+  return formatLocalDate(nextMonday);
+}
+
 export async function buildPlanningContextFromIntervals(weekStartDate: string): Promise<PlanningContext> {
   const apiKey = process.env.INTERVALS_API_KEY;
   if (!apiKey) {
