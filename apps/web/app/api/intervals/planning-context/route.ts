@@ -1,5 +1,5 @@
 import { planWeek } from "@trainiq/recommendation";
-import { buildPlanningContextFromIntervals, isIntervalsDemoRouteEnabled, mondayOfLocalWeek } from "@/lib/server/intervals-planning-context";
+import { buildPlanningContextFromIntervals, isIntervalsDemoRouteEnabled, mondayOfNextLocalWeek } from "@/lib/server/intervals-planning-context";
 
 /**
  * Local-development-only demonstration route: builds a PlanningContext from
@@ -18,7 +18,7 @@ export async function GET(): Promise<Response> {
   }
 
   try {
-    const weekStartDate = mondayOfLocalWeek(new Date());
+    const weekStartDate = mondayOfNextLocalWeek(new Date());
     const context = await buildPlanningContextFromIntervals(weekStartDate);
     const plan = planWeek(context);
     return Response.json({ context, plan });

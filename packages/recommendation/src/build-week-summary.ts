@@ -6,6 +6,7 @@ import type {
   WeatherCondition,
   WeatherContext,
 } from "@trainiq/types";
+import { formatTsb } from "./format-tsb";
 
 const FAVORABLE_CONDITIONS: WeatherCondition[] = ["clear", "clouds"];
 
@@ -75,7 +76,7 @@ export function buildWeekSummary({
     );
   } else if (qualityDays.length === 0 && hardBudget === 0) {
     noQualitySentence.push(
-      `Current form (TSB ${trainingLoad.tsb}) is low, so this week stays easy across the board to support recovery.`
+      `Current form (TSB ${formatTsb(trainingLoad.tsb)}) is low, so hard sessions were avoided this week to support recovery.`
     );
   }
 

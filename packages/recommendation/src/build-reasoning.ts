@@ -1,4 +1,5 @@
 import type { Availability, DayOfWeek, DayWeather, FixedCommitment, TrainingLoadContext, Workout } from "@trainiq/types";
+import { formatTsb } from "./format-tsb";
 
 /** Reasoning for a fixed commitment day — it's a real calendar fact, not a scored recommendation. */
 export function buildFixedCommitmentReasoning(
@@ -25,7 +26,7 @@ function buildIntensityReason(
   if (workout.intensity === "hard" || workout.intensity === "very-hard") {
     return goalLabel
       ? [`This is your quality session, chosen to support your ${goalLabel} goal.`]
-      : [`Current form (TSB ${trainingLoad.tsb}) supported one focused, harder effort this week.`];
+      : [`Current form (TSB ${formatTsb(trainingLoad.tsb)}) supported one focused, harder effort this week.`];
   }
   return [];
 }
@@ -60,7 +61,7 @@ export function buildReasoning({
 
   const lowLoadReason =
     trainingLoad.tsb < -10 && (workout.intensity === "easy" || workout.intensity === "moderate")
-      ? [`Recent training load is high (TSB ${trainingLoad.tsb}), so intensity was kept low.`]
+      ? [`Recent training load is high (TSB ${formatTsb(trainingLoad.tsb)}), so a harder effort was avoided today.`]
       : [];
 
   const strengthReason =
