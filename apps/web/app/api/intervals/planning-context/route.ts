@@ -3,10 +3,12 @@ import { buildPlanningContextFromIntervals, isIntervalsDemoRouteEnabled, mondayO
 
 /**
  * Local-development-only demonstration route: builds a PlanningContext from
- * real Intervals.icu wellness/activity data and runs it through planWeek()
- * unchanged, to show planWeek() has no idea the trainingLoad came from
- * Intervals.icu. Requires INTERVALS_API_KEY to be set (see apps/web/.env.example).
- * Not part of the product UI yet — see README for V0.3 scope.
+ * real Intervals.icu athlete-identity, wellness, and activity data, and runs
+ * it through planWeek() unchanged, to show planWeek() has no idea any of
+ * that came from Intervals.icu. `athlete.sports` and the rest of the context
+ * remain TrainIQ-owned mock data. Requires INTERVALS_API_KEY to be set (see
+ * apps/web/.env.example). Not part of the product UI yet — see README for
+ * V0.3 scope.
  *
  * Disabled everywhere except `next dev` (see isIntervalsDemoRouteEnabled):
  * fails closed with a 404 before touching Intervals.icu or athlete data, so

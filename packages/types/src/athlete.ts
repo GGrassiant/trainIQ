@@ -25,3 +25,13 @@ export interface Athlete {
   name: string;
   sports: EnduranceSport[];
 }
+
+/**
+ * The subset of athlete identity an external provider (e.g. Intervals.icu)
+ * can supply. Deliberately excludes `sports`: planning sports are a
+ * TrainIQ-owned preference, never inferred from an external profile.
+ */
+export interface AthleteIdentity {
+  id: string;
+  name: string;
+}

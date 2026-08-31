@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { TrainingLoadContext } from "@trainiq/types";
-import { buildPlanningContextWithTrainingLoad, mockTrainingLoad } from "@trainiq/domain";
+import type { AthleteIdentity, TrainingLoadContext } from "@trainiq/types";
+import { buildPlanningContextWithTrainingLoad, mockAthlete, mockTrainingLoad } from "@trainiq/domain";
 import { planWeek } from "./plan-week";
 
 /** Shaped like what @trainiq/intervals' mappers would produce — this test never imports that package. */
@@ -37,5 +37,22 @@ describe("buildPlanningContextWithTrainingLoad", () => {
     const plan = planWeek(context);
     expect(plan.weekStartDate).toBe("2026-08-31");
     expect(plan.days.length).toBeGreaterThan(0);
+  });
+
+  it("keeps the mock athlete identity when no athleteIdentity is given", () => {
+    const context = buildPlanningContextWithTrainingLoad(realTrainingLoad, "2026-08-31");
+
+    expect(context.athlete).toEqual(mockAthlete);
+  });
+
+  it("overrides only athlete id/name when given a real athleteIdentity, keeping TrainIQ-owned sports", () => {
+    /** Shaped like what @trainiq/intervals' athlete mapper would produce — this test never imports that package. */
+    const realAthleteIdentity: AthleteIdentity = { id: "i123456", name: "Jamie Rivera" };
+
+    const context = buildPlanningContextWithTrainingLoad(realTrainingLoad, "2026-08-31", realAthleteIdentity);
+
+    expect(context.athlete.id).toBe("i123456");
+    expect(context.athlete.name).toBe("Jamie Rivera");
+    expect(context.athlete.sports).toEqual(mockAthlete.sports);
   });
 });

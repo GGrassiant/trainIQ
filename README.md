@@ -43,6 +43,129 @@ TrainIQ is an early learning/portfolio project. The workflow above describes pro
 goals and planned functionality; it is not implemented yet. The repository currently
 contains the web and mobile monorepo bootstrap.
 
+## Architecture: current vs target
+
+TrainIQ's repository currently reflects two overlapping architectures: what's
+actually implemented today, and what the product is intended to become. This
+section makes that distinction explicit — see "Development progress" below
+for exactly which inputs are real today.
+
+### Current (development) architecture
+
+Today, the web and React Native apps each independently build a mock
+`PlanningContext` and run it through the shared, deterministic `planWeek()`
+recommendation engine:
+
+```
+Web          → mock PlanningContext → planWeek() → WeeklyPlan
+React Native → mock PlanningContext → planWeek() → WeeklyPlan
+```
+
+These are independent executions: both use the same shared
+`@trainiq/domain`/`@trainiq/recommendation` packages, but neither talks to
+the other, and neither is backed by real data.
+
+In parallel, a development-only Next.js API route demonstrates the first
+real-data planning path, server-side only:
+
+```
+Intervals.icu → Next.js server → Intervals client → Intervals mappers
+             → PlanningContext → planWeek() → WeeklyPlan
+```
+
+This makes the repository temporarily **hybrid**:
+
+- Web can still calculate a plan locally from mock data.
+- React Native can still calculate a plan locally from mock data.
+- Real, Intervals.icu-backed planning currently only exists behind the
+  development-only server route described under "Intervals.icu integration"
+  below.
+
+This duplication is transitional — it lets the shared recommendation engine
+and the Intervals.icu integration each be built and tested independently. It
+is not the intended production architecture.
+
+### Target (production) architecture
+
+TrainIQ is intended to converge on a single backend as the source of truth
+for weekly planning:
+
+```
+Web ──────────────┐
+                   │
+React Native ──────┤
+                   ▼
+             TrainIQ Backend
+               (Next.js)
+                   │
+           ┌───────┼────────┐
+           ▼       ▼        ▼
+      Intervals  Weather  Database
+           │       │        │
+           └───────┼────────┘
+                   ▼
+            PlanningContext
+                   │
+              planWeek()
+                   │
+                   ▼
+             WeeklyPlan
+                   │
+              ┌────┴────┐
+              ▼         ▼
+             Web    React Native
+```
+
+In this target state:
+
+- The Next.js server acts as TrainIQ's backend/API, not only as the web
+  app's renderer.
+- Web and React Native both consume a `WeeklyPlan` produced by that backend,
+  instead of each independently computing their own.
+- React Native talks to the deployed TrainIQ backend directly over HTTP — it
+  does not depend on the web app being open or running.
+- External API credentials (Intervals.icu, weather, etc.), including future
+  Intervals.icu OAuth tokens, stay server-side; client apps authenticate with
+  TrainIQ itself rather than embedding third-party secrets.
+- `planWeek()` remains a pure, deterministic, platform-independent function.
+  The backend is responsible for orchestrating external data, assembling
+  `PlanningContext`, calling `planWeek()`, and exposing the result to clients.
+
+Authentication, persistence, weather integration, and a unified production
+planning API do not exist yet — this section describes intended direction,
+not current behavior.
+
+## Development progress
+
+TrainIQ is being developed incrementally by replacing mocked `PlanningContext`
+inputs with real integrations one at a time, while keeping the recommendation
+engine independent of where its input data comes from. "Real integration
+exists" and "the current Web/RN UI consumes it" are two different things —
+the table below tracks them separately.
+
+| Planning input | Server integration | Web / RN UI today |
+| --- | --- | --- |
+| Athlete identity | **Real** — Intervals.icu | Mock |
+| Athlete planning preferences (sports) | Mock / TrainIQ-owned | Mock |
+| Goals | Mock / TrainIQ-owned | Mock |
+| Availability | Mock / TrainIQ-owned | Mock |
+| Training load (CTL / ATL / TSB) | **Real** — Intervals.icu | Mock |
+| Recent activities | **Real** — Intervals.icu | Mock |
+| Weather | Mock | Mock |
+| Workout library | Mock | Mock |
+| Weekly recommendation | **Real** — `planWeek()` | **Real** — `planWeek()` |
+
+The "Server integration" column reflects the development-only Intervals
+route (`buildPlanningContextFromIntervals`), which already fetches real
+athlete identity, training load, and recent activities from Intervals.icu
+and runs them through the real `planWeek()` engine. The "Web / RN UI today"
+column reflects what the actual app screens use, which is still the default
+mock `PlanningContext` for every input — the apps don't call that route yet.
+`planWeek()` itself is the one input that's already real and shared on both
+paths. Connecting the Web and React Native UIs to a shared backend that
+serves the Intervals-backed context is a future step (see "Target
+(production) architecture" above).
+
 ## Development process
 
 TrainIQ is being built with AI-assisted coding tools (Claude Code) as part of the normal
@@ -140,10 +263,12 @@ Android tooling is not documented yet — this bootstrap focuses on web + iOS.
 ## Intervals.icu integration (V0.3)
 
 TrainIQ's first Intervals.icu integration is **read-only**: `@trainiq/intervals` fetches
-wellness (CTL/ATL) and the previous ~28 days of activities, and maps them into
-TrainIQ's own `TrainingLoadContext` — replacing only the mock training-load portion of
-`PlanningContext`. `planWeek()` itself is unchanged and has no knowledge that
-Intervals.icu exists; it consumes whatever `PlanningContext` it's given.
+the athlete profile, wellness (CTL/ATL), and the previous ~28 days of activities, and
+maps them into TrainIQ's own `AthleteIdentity` and `TrainingLoadContext` — replacing
+only `athlete.id`, `athlete.name`, and `trainingLoad` in `PlanningContext`. `athlete.sports`
+remains a TrainIQ-owned preference; it is never inferred from the Intervals.icu profile.
+`planWeek()` itself is unchanged and has no knowledge that Intervals.icu exists; it
+consumes whatever `PlanningContext` it's given.
 
 Calendar sync, workout-library import, writing back to Intervals.icu, and OAuth are not
 implemented yet — this integration only reads wellness and activity data.

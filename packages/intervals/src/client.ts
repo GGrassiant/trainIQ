@@ -1,4 +1,4 @@
-import type { IntervalsActivity, IntervalsWellnessEntry } from "./api-types";
+import type { IntervalsActivity, IntervalsAthlete, IntervalsWellnessEntry } from "./api-types";
 
 const DEFAULT_BASE_URL = "https://intervals.icu/api/v1";
 /** Intervals.icu convention: athlete id "0" resolves to the authenticated athlete. */
@@ -32,9 +32,10 @@ export class IntervalsApiError extends Error {
 }
 
 /**
- * Thin, read-only client for the two Intervals.icu endpoints TrainIQ
- * currently needs. Not a general-purpose HTTP abstraction — just enough to
- * fetch wellness and activities with Basic auth and typed responses.
+ * Thin, read-only client for the Intervals.icu endpoints TrainIQ currently
+ * needs. Not a general-purpose HTTP abstraction — just enough to fetch
+ * wellness, activities, and athlete identity with Basic auth and typed
+ * responses.
  */
 export class IntervalsClient {
   private readonly apiKey: string;
@@ -51,17 +52,23 @@ export class IntervalsClient {
   }
 
   getWellness(range: IntervalsDateRange): Promise<IntervalsWellnessEntry[]> {
-    return this.get<IntervalsWellnessEntry[]>(`/athlete/${this.athleteId}/wellness`, range);
+    return this.get<IntervalsWellnessEntry[]>(`/athlete/${this.athleteId}/wellness`, { oldest: range.oldest, newest: range.newest });
   }
 
   getActivities(range: IntervalsDateRange): Promise<IntervalsActivity[]> {
-    return this.get<IntervalsActivity[]>(`/athlete/${this.athleteId}/activities`, range);
+    return this.get<IntervalsActivity[]>(`/athlete/${this.athleteId}/activities`, { oldest: range.oldest, newest: range.newest });
   }
 
-  private async get<T>(path: string, range: IntervalsDateRange): Promise<T> {
+  /** Fetches the authenticated athlete's profile (`GET /api/v1/athlete/{id}`). */
+  getAthlete(): Promise<IntervalsAthlete> {
+    return this.get<IntervalsAthlete>(`/athlete/${this.athleteId}`);
+  }
+
+  private async get<T>(path: string, params?: Record<string, string>): Promise<T> {
     const url = new URL(`${this.baseUrl}${path}`);
-    url.searchParams.set("oldest", range.oldest);
-    url.searchParams.set("newest", range.newest);
+    for (const [key, value] of Object.entries(params ?? {})) {
+      url.searchParams.set(key, value);
+    }
 
     // Intervals.icu's documented scheme for personal use: Basic auth with
     // the literal username "API_KEY" and the personal API key as the password.
