@@ -15,6 +15,17 @@ export interface IntervalsWellnessEntry {
   atl?: number;
 }
 
+/**
+ * The athlete identity fields from `GET /api/v1/athlete/{id}`. The real
+ * response carries dozens of account/settings fields (email, device sync
+ * config, units preferences, etc.) — only `id` and `name` are modeled here,
+ * since that's all TrainIQ's athlete identity currently needs.
+ */
+export interface IntervalsAthlete {
+  id: string;
+  name: string;
+}
+
 /** A single activity from `GET /api/v1/athlete/{id}/activities`. */
 export interface IntervalsActivity {
   id: string;

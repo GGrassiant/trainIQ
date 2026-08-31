@@ -79,6 +79,35 @@ describe("IntervalsClient", () => {
     await expect(client.getWellness({ oldest: "2026-08-01", newest: "2026-08-28" })).rejects.toThrow(IntervalsApiError);
   });
 
+  it("requests the athlete endpoint with no query params, defaulting to athlete 0", async () => {
+    const fetchMock = stubFetch({ ok: true, body: { id: "i123456", name: "Jamie Rivera" } });
+    const client = new IntervalsClient({ apiKey: "secret" });
+
+    await client.getAthlete();
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [calledUrl] = fetchMock.mock.calls[0];
+    const url = new URL(String(calledUrl));
+    expect(url.pathname).toBe("/api/v1/athlete/0");
+    expect(url.search).toBe("");
+  });
+
+  it("returns the parsed athlete body on a success response", async () => {
+    stubFetch({ ok: true, body: { id: "i123456", name: "Jamie Rivera" } });
+    const client = new IntervalsClient({ apiKey: "secret" });
+
+    const athlete = await client.getAthlete();
+
+    expect(athlete).toEqual({ id: "i123456", name: "Jamie Rivera" });
+  });
+
+  it("throws an IntervalsApiError from getAthlete on a non-success response", async () => {
+    stubFetch({ ok: false, status: 401, statusText: "Unauthorized" });
+    const client = new IntervalsClient({ apiKey: "bad-key" });
+
+    await expect(client.getAthlete()).rejects.toThrow(IntervalsApiError);
+  });
+
   it("includes the failing status on the thrown error", async () => {
     stubFetch({ ok: false, status: 500, statusText: "Server Error" });
     const client = new IntervalsClient({ apiKey: "secret" });
