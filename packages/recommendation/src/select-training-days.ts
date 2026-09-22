@@ -39,7 +39,7 @@ export function findLongestSessionDay(selectedDays: DayOfWeek[], availability: A
   );
 }
 
-/** Matches the shortest strength workout in the mock library, so a candidate day always has something that fits. */
+/** Minimum availability for a strength slot; a compatible library workout is still required. */
 const MIN_STRENGTH_MINUTES = 30;
 
 /**

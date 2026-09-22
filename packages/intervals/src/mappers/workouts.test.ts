@@ -152,20 +152,20 @@ describe("mapIntervalsWorkoutsToLibrary", () => {
     });
 
     it("ignores unknown zone ids and malformed seconds instead of coercing them", () => {
-      const messy: IntervalsWorkout = {
+      const messy = {
         ...z2RideWorkout,
         workout_doc: {
           zoneTimes: [
             { id: "Z2", secs: 7200 },
             { id: "Z5", secs: Number.NaN },
             { id: "Z6", secs: -600 },
-            { id: "Z7", secs: "900" as unknown as number },
+            { id: "Z7", secs: "900" },
             { id: "X9", secs: 5000 },
           ],
         },
       };
 
-      const { workouts, skipped } = mapOne(messy);
+      const { workouts, skipped } = mapIntervalsWorkoutsToLibrary([messy]);
 
       expect(skipped).toEqual([]);
       expect(workouts[0]).toMatchObject({ intensity: "easy", focus: "endurance" });
@@ -229,7 +229,7 @@ describe("mapIntervalsWorkoutsToLibrary", () => {
     expect(mapIntervalsWorkoutsToLibrary([])).toEqual({ workouts: [], skipped: [] });
   });
 
-  describe("validates untrusted JSON at the boundary (Codex P2): response.json() is unknown, not an asserted IntervalsWorkout[]", () => {
+  describe("validates untrusted JSON at the boundary", () => {
     it.each([
       ["null", null],
       ["undefined", undefined],

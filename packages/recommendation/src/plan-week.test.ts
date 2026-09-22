@@ -170,7 +170,7 @@ describe("planWeek", () => {
     });
   });
 
-  describe("fixed commitments are hard constraints (P1 #3)", () => {
+  describe("fixed commitments are hard constraints", () => {
     it("cannot be replaced by a better-scoring recommended workout, and keeps its own duration", () => {
       const base = buildMockPlanningContext();
       // A library full of short running workouts that would "win" on duration/focus scoring
@@ -211,7 +211,7 @@ describe("planWeek", () => {
     });
   });
 
-  describe("impossible or constrained availability never crashes the planner (P1 #1)", () => {
+  describe("impossible or constrained availability never crashes the planner", () => {
     it("returns a valid, empty-but-truthful plan when there are zero available training days", () => {
       const base = buildMockPlanningContext();
       const noAvailability: PlanningContext = {
@@ -284,7 +284,7 @@ describe("planWeek", () => {
     });
   });
 
-  describe("no compatible workout never crashes the planner (P1 #2)", () => {
+  describe("no compatible workout never crashes the planner", () => {
     it("represents an unresolved day, with a reason, instead of throwing when no workout matches the sport", () => {
       const base = buildMockPlanningContext();
       const noRunningWorkouts = base.workoutLibrary.filter((w) => w.sport !== "running");
