@@ -1,12 +1,20 @@
 import { buildPlanningContextWithTrainingLoad } from "@trainiq/domain";
-import { IntervalsClient, mapActivitiesToRecentSessions, mapIntervalsAthlete, mapWellnessToTrainingLoad } from "@trainiq/intervals";
+import {
+  IntervalsClient,
+  mapActivitiesToRecentSessions,
+  mapIntervalsAthlete,
+  mapIntervalsWorkoutsToLibrary,
+  mapWellnessToTrainingLoad,
+} from "@trainiq/intervals";
 import type { PlanningContext, TrainingLoadContext } from "@trainiq/types";
 
 /**
  * Server-side only. Builds a PlanningContext using real Intervals.icu data
- * for `athlete.id`, `athlete.name`, and `trainingLoad` (wellness + recent
- * activities); every other part of the context — including `athlete.sports`
- * — stays TrainIQ's own mock data (see buildPlanningContextWithTrainingLoad).
+ * for `athlete.id`, `athlete.name`, `trainingLoad` (wellness + recent
+ * activities), and `workoutLibrary` (the athlete's Intervals.icu workouts,
+ * classified by @trainiq/intervals); every other part of the context —
+ * including `athlete.sports`, goals, availability, and weather — stays
+ * TrainIQ's own mock data (see buildPlanningContextWithTrainingLoad).
  *
  * Reads INTERVALS_API_KEY from the server process environment and calls the
  * real Intervals.icu API — never import this from a client component, a
@@ -62,10 +70,11 @@ export async function buildPlanningContextFromIntervals(weekStartDate: string): 
   const client = new IntervalsClient({ apiKey });
   const range = lookbackRange(ACTIVITY_LOOKBACK_DAYS);
 
-  const [wellness, activities, athlete] = await Promise.all([
+  const [wellness, activities, athlete, intervalsWorkouts] = await Promise.all([
     client.getWellness(range),
     client.getActivities(range),
     client.getAthlete(),
+    client.getWorkouts(),
   ]);
 
   const wellnessResult = mapWellnessToTrainingLoad(wellness);
@@ -78,5 +87,17 @@ export async function buildPlanningContextFromIntervals(weekStartDate: string): 
     recentSessions: mapActivitiesToRecentSessions(activities),
   };
 
-  return buildPlanningContextWithTrainingLoad(trainingLoad, weekStartDate, mapIntervalsAthlete(athlete));
+  // intervalsWorkouts is untrusted JSON (unknown), not an asserted array — mapIntervalsWorkoutsToLibrary
+  // validates its shape (and each workout's) before reading anything off of it. No fallback to the mock
+  // library: workouts TrainIQ can't truthfully map are left out, and planWeek() represents a library
+  // with no fit as unresolved days.
+  const { workouts: workoutLibrary, skipped } = mapIntervalsWorkoutsToLibrary(intervalsWorkouts);
+  if (skipped.length > 0) {
+    console.warn(
+      `[TrainIQ] Skipped ${skipped.length} Intervals.icu workout(s):`,
+      skipped.map(({ id, reason }) => `${id}: ${reason}`),
+    );
+  }
+
+  return buildPlanningContextWithTrainingLoad(trainingLoad, weekStartDate, mapIntervalsAthlete(athlete), workoutLibrary);
 }

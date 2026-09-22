@@ -1,16 +1,6 @@
-import type { RecentSession, Sport } from "@trainiq/types";
+import type { RecentSession } from "@trainiq/types";
 import type { IntervalsActivity } from "../api-types";
-
-/** Intervals.icu activity `type` values TrainIQ currently knows how to plan around. Anything else is skipped, not guessed at. */
-const SPORT_BY_INTERVALS_TYPE: Record<string, Sport> = {
-  Ride: "cycling",
-  VirtualRide: "cycling",
-  GravelRide: "cycling",
-  MountainBikeRide: "cycling",
-  Run: "running",
-  VirtualRun: "running",
-  TrailRun: "running",
-};
+import { sportFromIntervalsType } from "./sport";
 
 const SECONDS_PER_MINUTE = 60;
 
@@ -31,7 +21,7 @@ const SECONDS_PER_MINUTE = 60;
  */
 export function mapActivitiesToRecentSessions(activities: IntervalsActivity[]): RecentSession[] {
   return activities.reduce<RecentSession[]>((sessions, activity) => {
-    const sport = SPORT_BY_INTERVALS_TYPE[activity.type];
+    const sport = sportFromIntervalsType(activity.type);
     if (!sport || activity.moving_time === undefined) {
       return sessions;
     }
