@@ -3,18 +3,22 @@ import {
   IntervalsClient,
   mapActivitiesToRecentSessions,
   mapIntervalsAthlete,
+  mapIntervalsEventsToScheduledWorkouts,
   mapIntervalsWorkoutsToLibrary,
   mapWellnessToTrainingLoad,
+  type IntervalsDateRange,
 } from "@trainiq/intervals";
 import type { PlanningContext, TrainingLoadContext } from "@trainiq/types";
 
 /**
  * Server-side only. Builds a PlanningContext using real Intervals.icu data
  * for `athlete.id`, `athlete.name`, `trainingLoad` (wellness + recent
- * activities), and `workoutLibrary` (the athlete's Intervals.icu workouts,
- * classified by @trainiq/intervals); every other part of the context —
- * including `athlete.sports`, goals, availability, and weather — stays
- * TrainIQ's own mock data (see buildPlanningContextWithTrainingLoad).
+ * activities), `workoutLibrary` (the athlete's Intervals.icu workouts,
+ * classified by @trainiq/intervals), and `scheduledWorkouts` (what
+ * Intervals.icu has scheduled for the planning week itself); every other
+ * part of the context — including `athlete.sports`, goals, availability,
+ * and weather — stays TrainIQ's own mock data (see
+ * buildPlanningContextWithTrainingLoad).
  *
  * Reads INTERVALS_API_KEY from the server process environment and calls the
  * real Intervals.icu API — never import this from a client component, a
@@ -61,6 +65,25 @@ export function mondayOfNextLocalWeek(date: Date): string {
   return formatLocalDate(nextMonday);
 }
 
+function addDaysToLocalDate(dateStr: string, days: number): string {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  return formatLocalDate(new Date(year, month - 1, day + days));
+}
+
+const DAYS_IN_WEEK = 7;
+
+/**
+ * The Intervals.icu request range for the planning week starting on
+ * `weekStartDate` (Monday-Sunday, matching this repo's week convention) —
+ * distinct from `lookbackRange()`, which answers "what already happened
+ * before now" for recent activities. Verified against a real account:
+ * Intervals.icu's `oldest`/`newest` are both inclusive, so `newest` is
+ * `weekStartDate` + 6 days (Sunday), not +7.
+ */
+export function planningWeekRange(weekStartDate: string): IntervalsDateRange {
+  return { oldest: weekStartDate, newest: addDaysToLocalDate(weekStartDate, DAYS_IN_WEEK - 1) };
+}
+
 export async function buildPlanningContextFromIntervals(weekStartDate: string): Promise<PlanningContext> {
   const apiKey = process.env.INTERVALS_API_KEY;
   if (!apiKey) {
@@ -69,12 +92,14 @@ export async function buildPlanningContextFromIntervals(weekStartDate: string): 
 
   const client = new IntervalsClient({ apiKey });
   const range = lookbackRange(ACTIVITY_LOOKBACK_DAYS);
+  const eventsRange = planningWeekRange(weekStartDate);
 
-  const [wellness, activities, athlete, intervalsWorkouts] = await Promise.all([
+  const [wellness, activities, athlete, intervalsWorkouts, intervalsEvents] = await Promise.all([
     client.getWellness(range),
     client.getActivities(range),
     client.getAthlete(),
     client.getWorkouts(),
+    client.getEvents(eventsRange),
   ]);
 
   const wellnessResult = mapWellnessToTrainingLoad(wellness);
@@ -99,5 +124,19 @@ export async function buildPlanningContextFromIntervals(weekStartDate: string): 
     );
   }
 
-  return buildPlanningContextWithTrainingLoad(trainingLoad, weekStartDate, mapIntervalsAthlete(athlete), workoutLibrary);
+  const { scheduledWorkouts, skipped: skippedEvents } = mapIntervalsEventsToScheduledWorkouts(intervalsEvents);
+  if (skippedEvents.length > 0) {
+    console.warn(
+      `[TrainIQ] Skipped ${skippedEvents.length} Intervals.icu event(s):`,
+      skippedEvents.map(({ id, reason }) => `${id}: ${reason}`),
+    );
+  }
+
+  return buildPlanningContextWithTrainingLoad(
+    trainingLoad,
+    weekStartDate,
+    mapIntervalsAthlete(athlete),
+    workoutLibrary,
+    scheduledWorkouts,
+  );
 }

@@ -14,5 +14,8 @@ export function buildMockPlanningContext(): PlanningContext {
     trainingLoad: mockTrainingLoad,
     weather: mockWeather,
     workoutLibrary: mockWorkoutLibrary,
+    // No mock fixture on purpose: the Web/RN mock UI doesn't consume this concept yet,
+    // and planWeek() must stay unaffected by it (see the guard test in @trainiq/recommendation).
+    scheduledWorkouts: [],
   };
 }

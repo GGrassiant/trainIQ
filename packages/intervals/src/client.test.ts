@@ -148,6 +148,36 @@ describe("IntervalsClient", () => {
     await expect(client.getWorkouts()).rejects.toThrow(IntervalsApiError);
   });
 
+  it("requests the events.json endpoint with oldest/newest query params, defaulting to athlete 0", async () => {
+    const fetchMock = stubFetch({ ok: true });
+    const client = new IntervalsClient({ apiKey: "secret" });
+
+    await client.getEvents({ oldest: "2026-09-22", newest: "2026-09-28" });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [calledUrl] = fetchMock.mock.calls[0];
+    const url = new URL(String(calledUrl));
+    expect(url.pathname).toBe("/api/v1/athlete/0/events.json");
+    expect(url.searchParams.get("oldest")).toBe("2026-09-22");
+    expect(url.searchParams.get("newest")).toBe("2026-09-28");
+  });
+
+  it("returns the parsed events body on a success response", async () => {
+    stubFetch({ ok: true, body: [{ id: 137241313, category: "WORKOUT", type: "Ride", name: "MAP", start_date_local: "2026-09-23T00:00:00" }] });
+    const client = new IntervalsClient({ apiKey: "secret" });
+
+    const events = await client.getEvents({ oldest: "2026-09-22", newest: "2026-09-28" });
+
+    expect(events).toEqual([{ id: 137241313, category: "WORKOUT", type: "Ride", name: "MAP", start_date_local: "2026-09-23T00:00:00" }]);
+  });
+
+  it("throws an IntervalsApiError from getEvents on a non-success response", async () => {
+    stubFetch({ ok: false, status: 401, statusText: "Unauthorized" });
+    const client = new IntervalsClient({ apiKey: "bad-key" });
+
+    await expect(client.getEvents({ oldest: "2026-09-22", newest: "2026-09-28" })).rejects.toThrow(IntervalsApiError);
+  });
+
   it("includes the failing status on the thrown error", async () => {
     stubFetch({ ok: false, status: 500, statusText: "Server Error" });
     const client = new IntervalsClient({ apiKey: "secret" });

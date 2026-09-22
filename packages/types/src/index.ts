@@ -8,4 +8,5 @@ export * from "./availability";
 export * from "./weather";
 export * from "./training-load";
 export * from "./workout";
+export * from "./scheduled-workout";
 export * from "./plan";

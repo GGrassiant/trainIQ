@@ -1,5 +1,6 @@
 import type { Athlete, AthleteGoal, EnduranceSport, Sport } from "./athlete";
 import type { Availability, DayOfWeek } from "./availability";
+import type { ScheduledWorkout } from "./scheduled-workout";
 import type { TrainingLoadContext } from "./training-load";
 import type { WeatherContext } from "./weather";
 import type { Workout } from "./workout";
@@ -79,4 +80,12 @@ export interface PlanningContext {
   trainingLoad: TrainingLoadContext;
   weather: WeatherContext;
   workoutLibrary: Workout[];
+  /**
+   * What Intervals.icu currently has scheduled, independent of `availability`
+   * and `workoutLibrary`. Exposed for visibility only — planWeek() does not
+   * read this field and must not start reading it without a deliberate
+   * decision to change that (see the planning-context-composition guard test
+   * in @trainiq/recommendation).
+   */
+  scheduledWorkouts: ScheduledWorkout[];
 }

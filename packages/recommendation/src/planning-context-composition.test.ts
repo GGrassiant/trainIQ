@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { AthleteIdentity, TrainingLoadContext, Workout } from "@trainiq/types";
+import type { AthleteIdentity, ScheduledWorkout, TrainingLoadContext, Workout } from "@trainiq/types";
 import { buildPlanningContextWithTrainingLoad, mockAthlete, mockTrainingLoad, mockWorkoutLibrary } from "@trainiq/domain";
 import { planWeek } from "./plan-week";
 
@@ -104,6 +104,78 @@ describe("buildPlanningContextWithTrainingLoad", () => {
 
       expect(plan.days.some((day) => day.status === "recommended")).toBe(false);
       expect(plan.days.some((day) => day.status === "unresolved")).toBe(true);
+    });
+  });
+
+  describe("scheduled workouts", () => {
+    /** Shaped like what @trainiq/intervals' events mapper would produce — this test never imports that package. */
+    const realScheduledWorkouts: ScheduledWorkout[] = [
+      { id: "137241313", date: "2026-09-23", sport: "cycling", name: "MAP", plannedDurationMinutes: 60, plannedLoad: 70 },
+      {
+        id: "137241043",
+        date: "2026-09-22",
+        sport: "running",
+        name: "Run - Endurance",
+        plannedDurationMinutes: 30,
+        plannedLoad: 32,
+        completedActivityId: "i189162915",
+      },
+    ];
+
+    it("keeps the mock (empty) scheduledWorkouts when none is given", () => {
+      const context = buildPlanningContextWithTrainingLoad(realTrainingLoad, "2026-08-31");
+
+      expect(context.scheduledWorkouts).toEqual([]);
+    });
+
+    it("uses the given scheduledWorkouts instead of the mock ones, leaving the rest of the context alone", () => {
+      const context = buildPlanningContextWithTrainingLoad(realTrainingLoad, "2026-08-31", undefined, undefined, realScheduledWorkouts);
+
+      expect(context.scheduledWorkouts).toEqual(realScheduledWorkouts);
+      expect(context.trainingLoad).toEqual(realTrainingLoad);
+      expect(context.workoutLibrary).toEqual(mockWorkoutLibrary);
+      expect(context.athlete).toEqual(mockAthlete);
+    });
+
+    /**
+     * The isolation contract's most important test: scheduledWorkouts entries land exactly on the target
+     * planning week's own calendar dates (2026-08-31 is the weekStartDate, a Monday — see mockAvailability),
+     * one on every day the mock context's plan actually uses (the fixed Tuesday, the three chosen endurance
+     * days, and Monday, the mock context's strength-only slot — see plan-week.test.ts), including a
+     * strength-sport entry, with a workout library that can actually produce a strength recommendation.
+     * If a future change made planWeek() read scheduledWorkouts by date or by sport — even narrowly, e.g.
+     * "only strength entries" or "only entries on today" — this is built to catch it, unlike a guard test
+     * using unrelated dates/sports that such a narrow read could slip past.
+     */
+    const realWorkoutLibraryWithStrength: Workout[] = [
+      ...realWorkoutLibrary,
+      { id: "900", name: "Full-Body Strength", sport: "strength", durationMinutes: 30, focus: "strength", intensity: "moderate", fatigueCost: 4, description: "" },
+    ];
+
+    const scheduledWorkoutsAcrossThePlanningWeek: ScheduledWorkout[] = [
+      { id: "500", date: "2026-08-31", sport: "strength", name: "Strength training", plannedDurationMinutes: 20 }, // Monday: the plan's strength day
+      { id: "501", date: "2026-09-01", sport: "running", name: "Tempo", plannedDurationMinutes: 45, plannedLoad: 50 }, // Tuesday: the fixed running-club day
+      { id: "502", date: "2026-09-02", sport: "cycling", name: "Sweet Spot", plannedDurationMinutes: 75, plannedLoad: 80 }, // Wednesday
+      { id: "503", date: "2026-09-05", sport: "cycling", name: "Z2 Ride", plannedDurationMinutes: 150, plannedLoad: 90 }, // Saturday
+      { id: "504", date: "2026-09-06", sport: "running", name: "Long Run", plannedDurationMinutes: 90, plannedLoad: 95, completedActivityId: "i900" }, // Sunday
+    ];
+
+    it("never changes planWeek()'s complete WeeklyPlan, even with scheduledWorkouts covering every day and sport (including strength) the plan itself uses", () => {
+      const contextWithout = buildPlanningContextWithTrainingLoad(realTrainingLoad, "2026-08-31", undefined, realWorkoutLibraryWithStrength, []);
+      const contextWith = buildPlanningContextWithTrainingLoad(
+        realTrainingLoad,
+        "2026-08-31",
+        undefined,
+        realWorkoutLibraryWithStrength,
+        scheduledWorkoutsAcrossThePlanningWeek,
+      );
+
+      const planWithout = planWeek(contextWithout);
+      const planWith = planWeek(contextWith);
+
+      // Sanity: the plan this test isolates against actually does have a strength day, so the comparison below is meaningful.
+      expect(planWithout.days.some((day) => day.sport === "strength")).toBe(true);
+      expect(planWith).toEqual(planWithout);
     });
   });
 });
