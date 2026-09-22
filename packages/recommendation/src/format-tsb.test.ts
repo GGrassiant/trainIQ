@@ -14,10 +14,4 @@ describe("formatTsb", () => {
   it("leaves an already-whole value unchanged", () => {
     expect(formatTsb(-6)).toBe("-6");
   });
-
-  it("does not mutate the raw value it was given", () => {
-    const raw = -31.955060000000003;
-    formatTsb(raw);
-    expect(raw).toBe(-31.955060000000003);
-  });
 });

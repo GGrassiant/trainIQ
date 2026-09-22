@@ -86,76 +86,81 @@ export function planWeek(context: PlanningContext): WeeklyPlan {
   const preferredGoal = primaryEnduranceGoal(goals);
   logStage("primaryEnduranceGoal", { sport: preferredGoal?.sport });
 
-  const enduranceDays = selectedDays.reduce<{ days: TrainingDay[]; previous?: TrainingDay }>(
-    (acc, day) => {
-      const sport = sportByDay[day];
-      const dayAvailability = availability.days[day];
-      const { targetIntensity, weatherAdjusted } = intensityByDay[day];
+  const enduranceDays: TrainingDay[] = [];
+  let previous: TrainingDay | undefined;
 
-      const fixedCommitment = dayAvailability.fixedCommitment;
-      if (fixedCommitment) {
-        const trainingDay: TrainingDay = {
-          dayOfWeek: day,
-          status: "fixed",
-          sport: fixedCommitment.sport,
-          label: fixedCommitment.label,
-          durationMinutes: fixedCommitment.durationMinutes,
-          reasoning: buildFixedCommitmentReasoning(fixedCommitment, dayAvailability),
-        };
-        return { days: [...acc.days, trainingDay], previous: trainingDay };
-      }
+  for (const day of selectedDays) {
+    const sport = sportByDay[day];
+    const dayAvailability = availability.days[day];
+    const { targetIntensity, weatherAdjusted } = intensityByDay[day];
 
-      const isCalendarAdjacentToPrevious =
-        acc.previous !== undefined && DAYS_OF_WEEK.indexOf(day) - DAYS_OF_WEEK.indexOf(acc.previous.dayOfWeek) === 1;
-
-      const result = pickWorkout({
-        sport,
-        intensity: targetIntensity,
-        maxDurationMinutes: dayAvailability.maxDurationMinutes,
-        library: workoutLibrary,
-        focusPriority: preferredGoal && sport === preferredGoal.sport ? GOAL_ALIGNED_FOCUS[sport] : undefined,
-        excludeWorkoutId: isCalendarAdjacentToPrevious ? usedWorkoutId(acc.previous!) : undefined,
-      });
-
-      if (!result.found) {
-        const trainingDay: TrainingDay = {
-          dayOfWeek: day,
-          status: "unresolved",
-          sport,
-          durationMinutes: dayAvailability.maxDurationMinutes,
-          reason: result.reason,
-        };
-        return { days: [...acc.days, trainingDay], previous: trainingDay };
-      }
-
-      const { workout, avoidedRepeat } = result;
-      const isQuality = workout.intensity === "hard" || workout.intensity === "very-hard";
-      const goalLabel = isQuality && preferredGoal && sport === preferredGoal.sport ? preferredGoal.label : undefined;
-
-      const reasoning = buildReasoning({
-        workout,
-        dayAvailability,
-        dayWeather: weather.days[day],
-        isLongestDay: day === longestDay,
-        weatherAdjusted,
-        trainingLoad,
-        goalLabel,
-        avoidedRepeat,
-      });
-
+    const fixedCommitment = dayAvailability.fixedCommitment;
+    if (fixedCommitment) {
       const trainingDay: TrainingDay = {
         dayOfWeek: day,
-        status: "recommended",
-        sport,
-        workout,
-        durationMinutes: workout.durationMinutes,
-        reasoning,
+        status: "fixed",
+        sport: fixedCommitment.sport,
+        label: fixedCommitment.label,
+        durationMinutes: fixedCommitment.durationMinutes,
+        reasoning: buildFixedCommitmentReasoning(fixedCommitment, dayAvailability),
       };
+      enduranceDays.push(trainingDay);
+      previous = trainingDay;
+      continue;
+    }
 
-      return { days: [...acc.days, trainingDay], previous: trainingDay };
-    },
-    { days: [] }
-  ).days;
+    const isCalendarAdjacentToPrevious =
+      previous !== undefined && DAYS_OF_WEEK.indexOf(day) - DAYS_OF_WEEK.indexOf(previous.dayOfWeek) === 1;
+
+    const result = pickWorkout({
+      sport,
+      intensity: targetIntensity,
+      maxDurationMinutes: dayAvailability.maxDurationMinutes,
+      library: workoutLibrary,
+      focusPriority: preferredGoal && sport === preferredGoal.sport ? GOAL_ALIGNED_FOCUS[sport] : undefined,
+      excludeWorkoutId: isCalendarAdjacentToPrevious ? usedWorkoutId(previous!) : undefined,
+    });
+
+    if (!result.found) {
+      const trainingDay: TrainingDay = {
+        dayOfWeek: day,
+        status: "unresolved",
+        sport,
+        durationMinutes: dayAvailability.maxDurationMinutes,
+        reason: result.reason,
+      };
+      enduranceDays.push(trainingDay);
+      previous = trainingDay;
+      continue;
+    }
+
+    const { workout, avoidedRepeat } = result;
+    const isQuality = workout.intensity === "hard" || workout.intensity === "very-hard";
+    const goalLabel = isQuality && preferredGoal && sport === preferredGoal.sport ? preferredGoal.label : undefined;
+
+    const reasoning = buildReasoning({
+      workout,
+      dayAvailability,
+      dayWeather: weather.days[day],
+      isLongestDay: day === longestDay,
+      weatherAdjusted,
+      trainingLoad,
+      goalLabel,
+      avoidedRepeat,
+    });
+
+    const trainingDay: TrainingDay = {
+      dayOfWeek: day,
+      status: "recommended",
+      sport,
+      workout,
+      durationMinutes: workout.durationMinutes,
+      reasoning,
+    };
+
+    enduranceDays.push(trainingDay);
+    previous = trainingDay;
+  }
   logStage("buildTrainingDays", {
     statusByDay: Object.fromEntries(enduranceDays.map((d) => [d.dayOfWeek, d.status])),
   });

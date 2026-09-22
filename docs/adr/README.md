@@ -24,3 +24,5 @@ reader doesn't have to reverse-engineer it from the code.
 | ADR                                   | Title                   | Status      |
 | ------------------------------------- | ----------------------- | ----------- |
 | [0001](0001-workout-classification.md) | Workout classification | Provisional |
+| [0002](0002-scheduled-workouts.md) | Scheduled workouts are planning context, not fixed commitments | Accepted |
+| [0003](0003-planning-engine-contract.md) | Planning operates on an explicit domain context | Accepted |

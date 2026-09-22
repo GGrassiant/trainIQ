@@ -1,4 +1,4 @@
-import { buildPlanningContextWithTrainingLoad } from "@trainiq/domain";
+import { buildPlanningContextWithMockDefaults } from "@trainiq/domain";
 import {
   IntervalsClient,
   mapActivitiesToRecentSessions,
@@ -18,7 +18,7 @@ import type { PlanningContext, TrainingLoadContext } from "@trainiq/types";
  * Intervals.icu has scheduled for the planning week itself); every other
  * part of the context — including `athlete.sports`, goals, availability,
  * and weather — stays TrainIQ's own mock data (see
- * buildPlanningContextWithTrainingLoad).
+ * buildPlanningContextWithMockDefaults).
  *
  * Reads INTERVALS_API_KEY from the server process environment and calls the
  * real Intervals.icu API — never import this from a client component, a
@@ -132,11 +132,11 @@ export async function buildPlanningContextFromIntervals(weekStartDate: string): 
     );
   }
 
-  return buildPlanningContextWithTrainingLoad(
+  return buildPlanningContextWithMockDefaults({
     trainingLoad,
     weekStartDate,
-    mapIntervalsAthlete(athlete),
+    athleteIdentity: mapIntervalsAthlete(athlete),
     workoutLibrary,
     scheduledWorkouts,
-  );
+  });
 }

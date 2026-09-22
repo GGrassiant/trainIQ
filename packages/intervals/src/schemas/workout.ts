@@ -1,21 +1,9 @@
 import { z } from "zod";
 
 /**
- * Runtime validation for `GET /api/v1/athlete/{id}/workouts` — the boundary
- * where `response.json()` first becomes TrainIQ data. Before this schema
- * existed, that JSON was asserted `as IntervalsWorkout[]` without being
- * checked, so malformed external data (a missing/null id, a non-array
- * response, ...) could throw deep inside the mapper or silently produce a
- * fabricated `Workout.id` such as `"undefined"`.
- *
- *   Intervals HTTP JSON -> unknown -> Zod validation -> validated data -> mapper -> TrainIQ Workout
- *
- * Deliberately minimal: this validates only the fields `mapIntervalsWorkoutsToLibrary`
- * actually reads, not the whole real Intervals workout schema, and any other field
- * on the real payload (folder_id, indoor, tags, ...) is simply ignored, not rejected.
- * This is the only Intervals.icu boundary validated with Zod today — athlete,
- * wellness and activities still use the plain `as T` pattern; see the P2 fix
- * discussion this schema came from before extending the pattern elsewhere.
+ * Validates the fields read by the workout mapper; extra provider fields are
+ * ignored. Each workout is validated separately so malformed entries do not
+ * discard valid siblings.
  */
 
 /** The real payload sometimes sends an explicit `null` for an absent optional field; treat that the same as "not provided". */
