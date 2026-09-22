@@ -34,8 +34,8 @@ export class IntervalsApiError extends Error {
 /**
  * Thin, read-only client for the Intervals.icu endpoints TrainIQ currently
  * needs. Not a general-purpose HTTP abstraction — just enough to fetch
- * wellness, activities, and athlete identity with Basic auth and typed
- * responses.
+ * wellness, activities, athlete identity, and the workout library with Basic
+ * auth and typed responses.
  */
 export class IntervalsClient {
   private readonly apiKey: string;
@@ -62,6 +62,17 @@ export class IntervalsClient {
   /** Fetches the authenticated athlete's profile (`GET /api/v1/athlete/{id}`). */
   getAthlete(): Promise<IntervalsAthlete> {
     return this.get<IntervalsAthlete>(`/athlete/${this.athleteId}`);
+  }
+
+  /**
+   * Fetches the athlete's workout library (`GET /api/v1/athlete/{id}/workouts`).
+   * Returns `unknown`, not an asserted `IntervalsWorkout[]`: the response body
+   * is untrusted external JSON, and `mapIntervalsWorkoutsToLibrary()` is the
+   * one place that validates its actual runtime shape (with Zod) before
+   * anything reads a field off of it.
+   */
+  getWorkouts(): Promise<unknown> {
+    return this.get<unknown>(`/athlete/${this.athleteId}/workouts`);
   }
 
   private async get<T>(path: string, params?: Record<string, string>): Promise<T> {

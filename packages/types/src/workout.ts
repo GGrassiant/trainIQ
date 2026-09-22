@@ -27,14 +27,16 @@ export interface Workout {
    * This is NOT the same thing as Intervals.icu's "Load" metric — fatigueCost
    * is a simple, self-contained heuristic we invented for this planner, while
    * Intervals.icu Load is an external, physiologically-modeled training load
-   * value that will come from the Intervals.icu API once that integration
-   * exists. Do not treat the two as equivalent or interchangeable.
+   * value, carried separately as `intervalsLoad`. Never derive one from the
+   * other or treat them as equivalent or interchangeable.
    */
   fatigueCost: number;
   /**
-   * Placeholder for a future Intervals.icu-sourced Load value. Intentionally
-   * unset everywhere in mock data today — this field exists to make the
-   * eventual integration point explicit, not to simulate real Load numbers.
+   * Intervals.icu's `icu_training_load` for this workout, when the workout
+   * was sourced from an Intervals.icu library. Unset for mock workouts. An
+   * external, physiologically-modeled value — preserved as-is, and distinct
+   * from `fatigueCost`, `focus` and `intensity`, which are TrainIQ-owned
+   * planning concepts.
    */
   intervalsLoad?: number;
   description: string;

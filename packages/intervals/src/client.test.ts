@@ -108,6 +108,46 @@ describe("IntervalsClient", () => {
     await expect(client.getAthlete()).rejects.toThrow(IntervalsApiError);
   });
 
+  it("requests the workouts endpoint with no query params, defaulting to athlete 0", async () => {
+    const fetchMock = stubFetch({ ok: true });
+    const client = new IntervalsClient({ apiKey: "secret" });
+
+    await client.getWorkouts();
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [calledUrl] = fetchMock.mock.calls[0];
+    const url = new URL(String(calledUrl));
+    expect(url.pathname).toBe("/api/v1/athlete/0/workouts");
+    expect(url.search).toBe("");
+  });
+
+  it("sends the same Basic auth header for workouts as for every other endpoint", async () => {
+    const fetchMock = stubFetch({ ok: true });
+    const client = new IntervalsClient({ apiKey: "secret-key" });
+
+    await client.getWorkouts();
+
+    const [, requestInit] = fetchMock.mock.calls[0];
+    const headers = (requestInit as RequestInit).headers as Record<string, string>;
+    expect(headers.Authorization).toBe(`Basic ${btoa("API_KEY:secret-key")}`);
+  });
+
+  it("returns the parsed workouts body on a success response", async () => {
+    stubFetch({ ok: true, body: [{ id: 245, name: "Z2 Ride", type: "Ride", moving_time: 7200 }] });
+    const client = new IntervalsClient({ apiKey: "secret" });
+
+    const workouts = await client.getWorkouts();
+
+    expect(workouts).toEqual([{ id: 245, name: "Z2 Ride", type: "Ride", moving_time: 7200 }]);
+  });
+
+  it("throws an IntervalsApiError from getWorkouts on a non-success response", async () => {
+    stubFetch({ ok: false, status: 401, statusText: "Unauthorized" });
+    const client = new IntervalsClient({ apiKey: "bad-key" });
+
+    await expect(client.getWorkouts()).rejects.toThrow(IntervalsApiError);
+  });
+
   it("includes the failing status on the thrown error", async () => {
     stubFetch({ ok: false, status: 500, statusText: "Server Error" });
     const client = new IntervalsClient({ apiKey: "secret" });

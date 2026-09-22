@@ -44,3 +44,36 @@ export interface IntervalsActivity {
   /** Intervals.icu's relative intensity for this activity (not a perceived-exertion rating). */
   icu_intensity?: number;
 }
+
+/**
+ * One entry of `workout_doc.zoneTimes`: seconds a workout spends in a zone.
+ * The real array carries Z1-Z7 plus an overlapping "SS" (Sweet Spot) entry,
+ * and per-zone metadata (name, color, watt ranges) that TrainIQ doesn't read.
+ */
+export interface IntervalsZoneTime {
+  /** "Z1"-"Z7", or "SS" (Sweet Spot), which overlaps Z3/Z4 rather than partitioning time. */
+  id: string;
+  secs: number;
+}
+
+/**
+ * A workout from the athlete's library, `GET /api/v1/athlete/{id}/workouts`.
+ * Only the fields TrainIQ reads are modeled. Everything except `id` is
+ * optional because the mapper must cope with incomplete library entries
+ * (e.g. free-text workouts with no `workout_doc`) instead of trusting them.
+ */
+export interface IntervalsWorkout {
+  /** Numeric on the API side; TrainIQ's `Workout.id` is a string. */
+  id: number;
+  name?: string;
+  description?: string;
+  /** Intervals.icu sport type, e.g. "Ride", "Run". Not a closed enum on the API side. */
+  type?: string;
+  /** Planned duration in seconds. */
+  moving_time?: number;
+  /** Intervals.icu's modeled training load for this workout. Not the same concept as TrainIQ's `fatigueCost`. */
+  icu_training_load?: number;
+  workout_doc?: {
+    zoneTimes?: IntervalsZoneTime[];
+  };
+}

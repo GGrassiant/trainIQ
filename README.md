@@ -34,9 +34,10 @@ real-life constraints, extended here across both cycling and running.
 TrainIQ's shared, deterministic recommendation engine (`planWeek()`) is functional, and both
 the Web and React Native apps run on it today using a mocked `PlanningContext` by default. In
 parallel, a development-only Next.js server integration with Intervals.icu now provides real
-athlete identity, real training load (CTL/ATL/TSB), and real recent activities server-side.
-The remaining planning inputs — preferences, goals, availability, weather, and workout library — still use mock data,
-with some of them ultimately intended to remain TrainIQ-owned rather than sourced from Intervals.icu.
+athlete identity, real training load (CTL/ATL/TSB), real recent activities, and the athlete's real
+workout library server-side. The remaining planning inputs — preferences, goals, availability, and
+weather — still use mock data, with some of them ultimately intended to remain TrainIQ-owned rather
+than sourced from Intervals.icu.
 The unified backend architecture described below is not implemented yet. See "Development progress" for the exact breakdown.
 
 ## Architecture: current vs target
@@ -134,7 +135,7 @@ it" are two different things — the table below tracks them separately.
 | Training load (CTL / ATL / TSB) | **Real** — Intervals.icu | Mock                    |
 | Recent activities               | **Real** — Intervals.icu | Mock                    |
 | Weather                         | Mock                     | Mock                    |
-| Workout library                 | Mock                     | Mock                    |
+| Workout library                 | **Real** — Intervals.icu | Mock                    |
 | Weekly recommendation           | **Real** — `planWeek()`  | **Real** — `planWeek()` |
 
 "Server integration" reflects the development-only Intervals route
@@ -171,7 +172,10 @@ packages/
   types/          @trainiq/types          — shared, platform-independent TS types
   domain/         @trainiq/domain         — shared domain logic (mock data + PlanningContext composition)
   recommendation/ @trainiq/recommendation — recommendation engine (planWeek())
-  intervals/      @trainiq/intervals      — read-only Intervals.icu client + mappers
+  intervals/      @trainiq/intervals      — read-only Intervals.icu client + mappers + workout classification
+
+docs/
+  adr/            Architecture decision records (see docs/adr/README.md)
 ```
 
 Package manager: **pnpm workspaces**, with `node-linker=hoisted` in `.npmrc` (chosen to
@@ -247,16 +251,25 @@ Android tooling is not documented yet — this project focuses on web + iOS.
 ## Intervals.icu integration
 
 `@trainiq/intervals` is a **read-only** client: it fetches the athlete profile, wellness
-(CTL/ATL), and the previous ~28 days of activities, and maps them into TrainIQ's own
-`AthleteIdentity` and `TrainingLoadContext` — replacing `athlete.id`, `athlete.name`, and
-`trainingLoad` in `PlanningContext`. `athlete.sports` remains a TrainIQ-owned preference; it is
-never inferred from the Intervals.icu profile. `planWeek()` itself is unchanged and has no
-knowledge that Intervals.icu exists.
+(CTL/ATL), the previous ~28 days of activities, and the athlete's workout library, and maps them
+into TrainIQ's own `AthleteIdentity`, `TrainingLoadContext` and `Workout[]` — replacing
+`athlete.id`, `athlete.name`, `trainingLoad` and `workoutLibrary` in `PlanningContext`.
+`athlete.sports` remains a TrainIQ-owned preference; it is never inferred from the Intervals.icu
+profile. `planWeek()` itself is unchanged and has no knowledge that Intervals.icu exists.
+
+Intervals.icu doesn't provide TrainIQ's workout `focus`, `intensity` or `fatigueCost`, so
+workouts are classified by small, deterministic, **provisional** heuristics based on how each
+workout's time is spread across zones (never the workout name). `focus` (what kind of work) and
+`intensity` (how demanding for planning) are classified independently and can legitimately differ.
+Intervals.icu's `icu_training_load` is kept separately as `intervalsLoad` and is never used as
+`focus`, `intensity` or `fatigueCost`.
+Workouts that can't be classified truthfully (unsupported sport, no zone data) are skipped.
+See [ADR 0001](docs/adr/0001-workout-classification.md) for the rules and their limits.
 
 The integration is currently server-side only, exercised through a development-only Next.js
 route; Web and React Native do not call it by default yet (see "Current (development)
-architecture" above). Calendar sync, workout-library import, writing back to Intervals.icu,
-and OAuth are not implemented.
+architecture" above). Calendar sync, writing back to Intervals.icu, and OAuth are not
+implemented.
 
 **Local setup:**
 

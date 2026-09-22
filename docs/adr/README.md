@@ -1,0 +1,26 @@
+# Architecture Decision Records
+
+Short notes recording why a significant technical or domain decision was made, so a future
+reader doesn't have to reverse-engineer it from the code.
+
+## Convention
+
+- One file per decision, numbered in order: `NNNN-short-descriptive-title.md`
+  (e.g. `0001-workout-classification.md`). Numbers are never reused.
+- Each ADR has four sections:
+  - **Status** — `Proposed`, `Accepted`, `Provisional` (accepted for now, expected to change), or
+    `Superseded by NNNN`.
+  - **Context** — the situation and constraints that forced a decision.
+  - **Decision** — what we decided, stated plainly.
+  - **Consequences** — what this makes easier, harder, or leaves open.
+- Keep them short. If an ADR needs more than a page, the decision is probably several decisions.
+- Don't edit an accepted ADR to change its decision — add a new one that supersedes it. Fixing
+  typos and updating the Status line is fine.
+- Only record decisions worth explaining later. Historical decisions are added separately, as
+  they become relevant, rather than retroactively in bulk.
+
+## Index
+
+| ADR                                   | Title                   | Status      |
+| ------------------------------------- | ----------------------- | ----------- |
+| [0001](0001-workout-classification.md) | Workout classification | Provisional |
