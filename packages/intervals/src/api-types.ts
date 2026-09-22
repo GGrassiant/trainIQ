@@ -77,3 +77,35 @@ export interface IntervalsWorkout {
     zoneTimes?: IntervalsZoneTime[];
   };
 }
+
+/**
+ * A calendar entry from `GET /api/v1/athlete/{id}/events.json`. The real
+ * payload carries dozens of fields (training-load projections, nutrition
+ * targets, sharing/permissions, ...) — only what
+ * `mapIntervalsEventsToScheduledWorkouts` reads is modeled here. Confirmed
+ * against a real account: `category` is "WORKOUT" for every event observed
+ * (no NOTE/RACE_* seen), `oldest`/`newest` on the request are both
+ * inclusive, and `start_date_local`/`end_date_local` are day-granularity
+ * only (always midnight, no real time-of-day signal).
+ */
+export interface IntervalsEvent {
+  id: number;
+  /**
+   * Not a closed enum on the API side. TrainIQ currently only understands
+   * "WORKOUT" — every other value (e.g. NOTE, RACE_A) is left unmapped
+   * rather than guessed at, since we have no real payload evidence for what
+   * those mean.
+   */
+  category: string;
+  /** Intervals.icu sport type, e.g. "Ride", "Run", "WeightTraining". Not a closed enum on the API side. */
+  type?: string;
+  name?: string;
+  /** Local date/time, day-granularity in practice, e.g. "2026-09-22T00:00:00". */
+  start_date_local: string;
+  /** Planned duration in seconds. */
+  moving_time?: number;
+  /** Intervals.icu's modeled PLANNED training load for this event — stays the plan's value even once paired to a completed activity. */
+  icu_training_load?: number;
+  /** The matching `IntervalsActivity.id` once the athlete has completed this scheduled workout. */
+  paired_activity_id?: string;
+}

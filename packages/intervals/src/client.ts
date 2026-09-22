@@ -12,9 +12,9 @@ export interface IntervalsClientConfig {
 }
 
 export interface IntervalsDateRange {
-  /** Inclusive start date, "YYYY-MM-DD". */
+  /** Inclusive start date, "YYYY-MM-DD". Verified against a real account: `oldest === newest` is a valid single-day request. */
   oldest: string;
-  /** Inclusive end date, "YYYY-MM-DD". */
+  /** Inclusive end date, "YYYY-MM-DD" — same inclusive semantics as `oldest`. */
   newest: string;
 }
 
@@ -57,6 +57,17 @@ export class IntervalsClient {
 
   getActivities(range: IntervalsDateRange): Promise<IntervalsActivity[]> {
     return this.get<IntervalsActivity[]>(`/athlete/${this.athleteId}/activities`, { oldest: range.oldest, newest: range.newest });
+  }
+
+  /**
+   * Fetches the athlete's calendar events (`GET /api/v1/athlete/{id}/events.json`)
+   * for the given inclusive date range. Returns `unknown`, not an asserted
+   * `IntervalsEvent[]`: the response body is untrusted external JSON, and
+   * `mapIntervalsEventsToScheduledWorkouts()` is the one place that validates
+   * its actual runtime shape (with Zod) before anything reads a field off of it.
+   */
+  getEvents(range: IntervalsDateRange): Promise<unknown> {
+    return this.get<unknown>(`/athlete/${this.athleteId}/events.json`, { oldest: range.oldest, newest: range.newest });
   }
 
   /** Fetches the authenticated athlete's profile (`GET /api/v1/athlete/{id}`). */

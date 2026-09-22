@@ -6,6 +6,7 @@ import {
   isIntervalsDemoRouteEnabled,
   mondayOfLocalWeek,
   mondayOfNextLocalWeek,
+  planningWeekRange,
 } from "./intervals-planning-context";
 
 afterEach(() => {
@@ -69,6 +70,29 @@ describe("mondayOfNextLocalWeek", () => {
   });
 });
 
+describe("planningWeekRange", () => {
+  it("requests the planning week's own Monday-Sunday span, inclusive on both ends", () => {
+    // Verified against the real Intervals.icu API: oldest/newest are both inclusive,
+    // so a Monday-Sunday week is oldest=Monday, newest=Monday+6 (Sunday), not +7.
+    expect(planningWeekRange("2026-09-21")).toEqual({ oldest: "2026-09-21", newest: "2026-09-27" });
+  });
+
+  it("is a different range than a recent-activity lookback would produce for the same date — Calendar answers what's planned, not what already happened", () => {
+    const range = planningWeekRange("2026-09-21");
+
+    expect(range.oldest).toBe("2026-09-21"); // the week's own start, not N days in the past
+    expect(new Date(range.newest).getTime()).toBeGreaterThan(new Date(range.oldest).getTime());
+  });
+
+  it("rolls forward across a month boundary correctly", () => {
+    expect(planningWeekRange("2026-09-28")).toEqual({ oldest: "2026-09-28", newest: "2026-10-04" });
+  });
+
+  it("rolls forward across a year boundary correctly", () => {
+    expect(planningWeekRange("2025-12-29")).toEqual({ oldest: "2025-12-29", newest: "2026-01-04" });
+  });
+});
+
 describe("buildPlanningContextFromIntervals", () => {
   /** Shaped like the real Intervals.icu responses (trimmed). Not real athlete data. */
   const responsesByPath: Record<string, unknown> = {
@@ -106,21 +130,34 @@ describe("buildPlanningContextFromIntervals", () => {
       { id: 500, name: "Easy Swim", type: "Swim", moving_time: 1800, workout_doc: { zoneTimes: [{ id: "Z2", secs: 1800 }] } },
       { id: 600, name: "Free-text ride", type: "Ride", moving_time: 10800 },
     ],
+    "/api/v1/athlete/0/events.json": [
+      { id: 137241313, category: "WORKOUT", type: "Ride", name: "MAP", start_date_local: "2026-08-31T00:00:00", moving_time: 3600, icu_training_load: 70 },
+      {
+        id: 137241043,
+        category: "WORKOUT",
+        type: "Run",
+        name: "Run - Endurance",
+        start_date_local: "2026-09-01T00:00:00",
+        moving_time: 1800,
+        icu_training_load: 32,
+        paired_activity_id: "i189162915",
+      },
+      { id: 999001, category: "NOTE", type: "Ride", name: "Race day nutrition reminder", start_date_local: "2026-09-02T00:00:00" },
+    ],
   };
 
-  function stubIntervalsApi(overrides: Record<string, unknown> = {}): void {
+  function stubIntervalsApi(overrides: Record<string, unknown> = {}): ReturnType<typeof vi.fn> {
     const responses = { ...responsesByPath, ...overrides };
     vi.stubEnv("INTERVALS_API_KEY", "test-key");
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async (input: URL | string) => {
-        const body = responses[new URL(String(input)).pathname];
-        return body === undefined
-          ? { ok: false, status: 404, statusText: "Not Found", json: async () => ({}) }
-          : { ok: true, status: 200, statusText: "OK", json: async () => body };
-      }),
-    );
+    const fetchMock = vi.fn(async (input: URL | string) => {
+      const body = responses[new URL(String(input)).pathname];
+      return body === undefined
+        ? { ok: false, status: 404, statusText: "Not Found", json: async () => ({}) }
+        : { ok: true, status: 200, statusText: "OK", json: async () => body };
+    });
+    vi.stubGlobal("fetch", fetchMock);
     vi.spyOn(console, "warn").mockImplementation(() => {});
+    return fetchMock;
   }
 
   afterEach(() => {
@@ -156,7 +193,7 @@ describe("buildPlanningContextFromIntervals", () => {
     const { workoutLibrary } = await buildPlanningContextFromIntervals("2026-08-31");
 
     expect(workoutLibrary.some((workout) => workout.name === "Easy Swim" || workout.name === "Free-text ride")).toBe(false);
-    expect(console.warn).toHaveBeenCalledTimes(1);
+    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining("Intervals.icu workout(s)"), expect.anything());
   });
 
   it("still takes identity, training load and recent activities from Intervals.icu, and everything else from TrainIQ's mock data", async () => {
@@ -192,5 +229,59 @@ describe("buildPlanningContextFromIntervals", () => {
     const context = await buildPlanningContextFromIntervals("2026-08-31");
 
     expect(context.workoutLibrary).toEqual([]);
+  });
+
+  describe("scheduled workouts", () => {
+    it("requests events.json with the planning week's own oldest/newest, not the recent-activity lookback range", async () => {
+      const fetchMock = stubIntervalsApi();
+
+      await buildPlanningContextFromIntervals("2026-08-31");
+
+      const eventsCall = fetchMock.mock.calls.find(([input]) => new URL(String(input)).pathname === "/api/v1/athlete/0/events.json");
+      expect(eventsCall).toBeDefined();
+      const url = new URL(String(eventsCall![0]));
+      expect(url.searchParams.get("oldest")).toBe("2026-08-31");
+      expect(url.searchParams.get("newest")).toBe("2026-09-06");
+
+      const activitiesCall = fetchMock.mock.calls.find(([input]) => new URL(String(input)).pathname === "/api/v1/athlete/0/activities");
+      const activitiesUrl = new URL(String(activitiesCall![0]));
+      expect(activitiesUrl.searchParams.get("oldest")).not.toBe(url.searchParams.get("oldest"));
+    });
+
+    it("maps only the WORKOUT-category events into scheduledWorkouts, skipping the rest", async () => {
+      stubIntervalsApi();
+
+      const context = await buildPlanningContextFromIntervals("2026-08-31");
+
+      expect(context.scheduledWorkouts).toEqual([
+        { id: "137241313", date: "2026-08-31", sport: "cycling", name: "MAP", plannedDurationMinutes: 60, plannedLoad: 70, completedActivityId: undefined },
+        {
+          id: "137241043",
+          date: "2026-09-01",
+          sport: "running",
+          name: "Run - Endurance",
+          plannedDurationMinutes: 30,
+          plannedLoad: 32,
+          completedActivityId: "i189162915",
+        },
+      ]);
+    });
+
+    it("does not fall back to a mock fixture when Intervals.icu has no scheduled workouts", async () => {
+      stubIntervalsApi({ "/api/v1/athlete/0/events.json": [] });
+
+      const context = await buildPlanningContextFromIntervals("2026-08-31");
+
+      expect(context.scheduledWorkouts).toEqual([]);
+    });
+
+    it("does not change planWeek()'s output — scheduledWorkouts is visibility only", async () => {
+      stubIntervalsApi();
+      const context = await buildPlanningContextFromIntervals("2026-08-31");
+
+      const contextWithoutScheduled = { ...context, scheduledWorkouts: [] };
+
+      expect(planWeek(context)).toEqual(planWeek(contextWithoutScheduled));
+    });
   });
 });
