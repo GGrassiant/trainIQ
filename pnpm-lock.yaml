@@ -16,6 +16,9 @@ importers:
       '@trpc/client':
         specifier: 11.19.0
         version: 11.19.0(@trpc/server@11.19.0(typescript@6.0.3))(typescript@6.0.3)
+      '@trpc/server':
+        specifier: 11.19.0
+        version: 11.19.0(typescript@6.0.3)
       react:
         specifier: 19.2.3
         version: 19.2.3
@@ -62,9 +65,6 @@ importers:
       '@react-native/typescript-config':
         specifier: 0.87.1
         version: 0.87.1
-      '@trpc/server':
-        specifier: 11.19.0
-        version: 11.19.0(typescript@6.0.3)
       '@types/jest':
         specifier: ^29.5.13
         version: 29.5.14

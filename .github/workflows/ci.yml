@@ -33,6 +33,9 @@ jobs:
       - name: Lint
         run: pnpm -r --if-present run lint
 
+      - name: Generate mobile tRPC contract
+        run: pnpm --filter web generate:trpc-types
+
       # Use the Web compiler for server packages; root hoisting can resolve mobile TS 6.
       - name: Typecheck
         run: |
@@ -43,6 +46,7 @@ jobs:
           pnpm --filter web exec tsc -p ../../packages/weather/tsconfig.json --noEmit
           pnpm --filter web exec next typegen
           pnpm --filter web exec tsc --noEmit
+          pnpm --filter mobile typecheck
 
       - name: Test
         run: pnpm -r --if-present run test
