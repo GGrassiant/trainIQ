@@ -38,11 +38,6 @@ function lookbackRange(days: number): { oldest: string; newest: string } {
   return { oldest: isoDate(oldest), newest: isoDate(newest) };
 }
 
-/** Only the local Next.js dev server may reach the Intervals.icu demo route — fails closed everywhere else, including production. */
-export function isIntervalsDemoRouteEnabled(): boolean {
-  return process.env.NODE_ENV === "development";
-}
-
 function formatLocalDate(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");

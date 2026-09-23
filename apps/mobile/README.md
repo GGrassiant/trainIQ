@@ -1,3 +1,13 @@
+# TrainIQ mobile
+
+React Native CLI client for the local Next.js planning backend. Start and configure
+Next before opening the app; see the [root setup instructions](../../README.md#real-data-local-backend).
+
+The screen uses vanilla tRPC over HTTP. It does not import the planner or build a
+PlanningContext. Configure `src/config/backend.ts` for a physical device (LAN IP);
+iOS simulator defaults to localhost and Android emulator to 10.0.2.2.
+TanStack Query is intentionally deferred until cache/mutations/invalidation are needed.
+
 This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
 
 # Getting Started

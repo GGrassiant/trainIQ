@@ -1,19 +1,65 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { TRPCClientError } from '@trpc/client';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Text, useTheme } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { buildMockPlanningContext } from '@trainiq/domain';
-import { planWeek } from '@trainiq/recommendation';
-import type { TrainingDay } from '@trainiq/types';
+import type { TrainingDay, WeeklyPlan } from '@trainiq/types';
+import { trpc } from '../api/trpc';
 import { TrainingDayCard } from '../components/TrainingDayCard';
 import { TrainingDayModal } from '../components/TrainingDayModal';
 
 export function WeeklyPlanScreen() {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
-  const plan = useMemo(() => planWeek(buildMockPlanningContext()), []);
+  const [plan, setPlan] = useState<WeeklyPlan | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
   const [selectedDay, setSelectedDay] = useState<TrainingDay | null>(null);
   const [accepted, setAccepted] = useState(false);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30_000);
+    let active = true;
+
+    trpc.planning.getWeeklyPlan.query(undefined, { signal: controller.signal })
+      .then(result => {
+        if (active) setPlan(result);
+      })
+      .catch((failure: unknown) => {
+        if (!active) return;
+        const serverError = failure instanceof TRPCClientError && failure.data?.code;
+        setError(serverError
+          ? 'The server could not load the weekly plan. Check its configuration and try again.'
+          : 'Cannot reach the planning server. Check your connection and backend URL.');
+      })
+      .finally(() => clearTimeout(timeout));
+
+    return () => {
+      active = false;
+      clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [attempt]);
+
+  if (!plan) {
+    return (
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+        <Text variant="headlineMedium">TrainIQ</Text>
+        <Text accessibilityRole={error ? 'alert' : 'text'}>
+          {error ?? 'Loading weekly plan…'}
+        </Text>
+        {error && (
+          <Button onPress={() => {
+            setError(null);
+            setAttempt(attempt + 1);
+          }}>
+            Try again
+          </Button>
+        )}
+      </View>
+    );
+  }
 
   return (
     <ScrollView

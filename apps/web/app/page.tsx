@@ -1,9 +1,10 @@
-import { buildMockPlanningContext } from "@trainiq/domain";
-import { planWeek } from "@trainiq/recommendation";
+import { connection } from "next/server";
+import { appRouter } from "@/lib/server/trpc/router";
 import { WeeklyPlanView } from "@/components/weekly-plan-view";
 
-export default function Home() {
-  const plan = planWeek(buildMockPlanningContext());
+export default async function Home() {
+  await connection();
+  const plan = await appRouter.createCaller({}).planning.getWeeklyPlan();
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 self-center px-4 py-8">
