@@ -184,8 +184,9 @@ pnpm --filter web exec tsc -p ../../packages/weather/tsconfig.json --noEmit
 pnpm --filter web exec next typegen
 pnpm --filter web exec tsc --noEmit
 
-# Mobile typecheck: known boundary limitation described below
-pnpm --filter mobile exec tsc --noEmit
+# Generate the mobile tRPC contract, then typecheck RN
+pnpm --filter web generate:trpc-types
+pnpm --filter mobile typecheck
 
 # App lint and patch whitespace
 pnpm --filter web lint
@@ -198,11 +199,23 @@ compiler can resolve to mobile TypeScript 6 through hoisting and changes ambient
 type discovery. Weather is included in the CI typecheck.
 
 Tests protect planner decisions, classification rules and external-data boundaries.
-The mobile typecheck is not yet enabled in CI: its type-only reference to the tRPC
-router makes TypeScript traverse server sources, whose Node/Web globals are absent
-from the RN type environment (`process`, `btoa`, and the server fetch URL signature).
-No server implementation is imported at runtime. Isolating emitted router declarations
-is deferred rather than adding Node globals to the mobile app or changing the planner.
+The mobile typecheck runs in CI after `pnpm --filter web generate:trpc-types`.
+Run this generation command after installation and whenever the router or its
+contract changes, so the mobile editor and typecheck see the current API.
+TypeScript emits declarations from the Web router into gitignored
+`apps/web/dist/trpc`, where imports such as `@trainiq/types` resolve through the
+Web app’s dependencies. RN consumes `apps/web/dist/trpc/trpc-types.d.ts` without
+analyzing server implementations. The normal Web TypeScript program excludes
+`dist`. Generated files are not committed: CI regenerates them from source on
+every run. Mobile type-tests check the query input and output, including a negative
+assignment that catches output inference degrading to `any`.
+
+Mobile formatting uses Prettier 2.8.8 and `apps/mobile/.prettierrc.js` (default
+80-column print width). Format only the files you change, for example
+`pnpm --filter mobile format src/api/trpc.ts`; use `format:check` with the same
+paths to verify them. ESLint does not run Prettier, and CI currently checks lint,
+not formatting. Web/shared packages have no explicit Prettier configuration.
+
 Changes affecting screens also receive manual verification on web and iOS.
 
 ## AI-assisted development

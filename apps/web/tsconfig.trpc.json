@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "noEmit": false,
+    "noEmitOnError": true,
+    "incremental": false,
+    "rootDir": ".",
+    "outDir": "dist/trpc"
+  },
+  "include": ["trpc-types.ts"]
+}
