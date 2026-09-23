@@ -3,29 +3,11 @@ import { buildMockPlanningContext, mockWorkoutLibrary } from "@trainiq/domain";
 import { planWeek } from "@trainiq/recommendation";
 import {
   buildPlanningContextFromIntervals,
-  isIntervalsDemoRouteEnabled,
   planningWeekRange,
 } from "./intervals-planning-context";
 
 afterEach(() => {
   vi.unstubAllEnvs();
-});
-
-describe("isIntervalsDemoRouteEnabled", () => {
-  it("is disabled in production, so the demo route fails closed if deployed", () => {
-    vi.stubEnv("NODE_ENV", "production");
-    expect(isIntervalsDemoRouteEnabled()).toBe(false);
-  });
-
-  it("is disabled in test", () => {
-    vi.stubEnv("NODE_ENV", "test");
-    expect(isIntervalsDemoRouteEnabled()).toBe(false);
-  });
-
-  it("is enabled only in local development", () => {
-    vi.stubEnv("NODE_ENV", "development");
-    expect(isIntervalsDemoRouteEnabled()).toBe(true);
-  });
 });
 
 describe("planningWeekRange", () => {

@@ -18,47 +18,57 @@ commitments, allocates endurance and strength sessions, and explains its decisio
 When no compatible workout exists, it returns an explicit `unresolved` slot; it
 does not generate a replacement workout.
 
-**Web and React Native still use mock planning inputs.** A separate,
-development-only Next.js route assembles real Intervals.icu and Open-Meteo data
-server-side and runs the same engine.
+**Next.js is the weekly planning source of truth for Web and React Native.**
+Both clients use `planning.getWeeklyPlan`: Web through a local tRPC server caller
+(no HTTP), React Native through the vanilla tRPC HTTP client.
 
-| Input or capability | Development server integration | Web / RN screens |
-| --- | --- | --- |
-| Athlete identity | Real — Intervals.icu | Mock |
-| CTL / ATL / TSB and recent activities | Real — Intervals.icu | Mock |
-| Workout library | Real — Intervals.icu, with TrainIQ classification | Mock |
-| Scheduled workouts | Real — Intervals.icu calendar, read-only context | Empty mock context; not displayed |
-| Planning preferences, goals and availability | Mock; TrainIQ-owned | Mock |
-| Weather | Real — Open-Meteo daily conditions | Mock |
-| Weekly recommendation | Shared `planWeek()` engine | Shared `planWeek()` engine |
+| Input | Server source |
+| --- | --- |
+| Athlete identity | Intervals.icu |
+| CTL / ATL / TSB and recent activities | Intervals.icu |
+| Workout library | Intervals.icu, with TrainIQ classification |
+| Scheduled workouts | Intervals.icu calendar, read-only context |
+| Sports, goals, availability and fixed commitments | TrainIQ prototype values |
+| Weather | Open-Meteo daily conditions at the configured prototype location |
 
 Scheduled workouts describe what is already planned; they do not automatically
 become fixed commitments and do not influence `planWeek()` in V1. Workout
 classification uses provisional, deterministic rules based on structured zone data.
 
-There is no calendar write-back, workout generation, OAuth, persistence or runtime
-LLM call. The real-data route is not a production planning API.
+There is no authentication, user persistence, calendar write-back, workout generation,
+OAuth or runtime LLM call. The real backend is development-only, not multi-user or
+production-ready. Accepting a plan still only changes local UI state.
 
 ## Architecture
 
-Today, each app builds a mock context and runs the shared engine. The development
-server route provides a separate path through the external-data boundary:
-
 ```text
-Web / React Native → mock PlanningContext → planWeek() → WeeklyPlan
-
-Intervals.icu + Open-Meteo → clients + mappers → PlanningContext → planWeek() → WeeklyPlan
+Web Server Component → local tRPC caller ────────────┐
+                                                    ▼
+RN → vanilla tRPC client → HTTP → Next handler → planning.getWeeklyPlan
+                                                    │
+                                          generateWeeklyPlan(now)
+                                                    │
+                                      buildServerPlanningContext(now)
+                                        Intervals + Weather + prototype preferences
+                                                    │
+                                              planWeek(context)
+                                                    │
+                                                WeeklyPlan
 ```
 
-External payloads and provider-specific interpretation stay in `@trainiq/intervals`
-and `@trainiq/weather`. The planner receives TrainIQ domain types and performs no
-API calls. Its result is
-deterministic for a given context; current development instrumentation still emits
-logs.
+`PlanningContext` stays internal to the server. Clients neither build it nor run
+`planWeek()`. Provider credentials stay server-side. The development-only guard is
+shared by HTTP and local callers and runs before provider access. Do not expose
+`next dev` publicly: the environment guard is not authentication.
 
-The target architecture is a shared Next.js backend that assembles the context and
-serves a `WeeklyPlan` to both clients over HTTP. Provider credentials stay on the
-server. Authentication, persistence and additional integrations remain future work.
+External payloads and interpretation stay in `@trainiq/intervals` and
+`@trainiq/weather`. The deterministic planner knows nothing about Next, tRPC or
+HTTP. Intervals failures produce an error, never a mock fallback; unavailable
+weather becomes `unknown`. Preferences remain explicitly prototype data.
+
+TanStack Query is planned for subsequent client interactions that benefit from
+cache, mutations and invalidation, on RN and interactive Web components. This PR
+isolates tRPC; its vanilla client has no custom cache or query-management framework.
 
 ```text
 apps/
@@ -79,7 +89,8 @@ node linker in `.npmrc` supports React Native autolinking.
 See the [architecture decision records](docs/adr/README.md) for the reasoning behind
 [workout classification](docs/adr/0001-workout-classification.md),
 [scheduled workouts](docs/adr/0002-scheduled-workouts.md), and the
-[planning engine contract](docs/adr/0003-planning-engine-contract.md).
+[planning engine contract](docs/adr/0003-planning-engine-contract.md), plus the
+[shared backend decision](docs/adr/0004-next-backend-planning-source-of-truth.md).
 
 ## Setup
 
@@ -95,7 +106,8 @@ pnpm install
 pnpm --filter web dev
 ```
 
-Open http://localhost:3000 to see a weekly plan built from mock data.
+Configure the providers below, then open http://localhost:3000. Keep Next running
+while using the mobile app. No provider credentials are required by automated tests.
 
 ### iOS
 
@@ -113,22 +125,31 @@ pnpm --filter mobile ios
 
 To start Metro separately, run `pnpm --filter mobile start` in another terminal.
 
-### Optional real-data development route
+### Real-data local backend
 
 1. Create a personal API key in Intervals.icu under Settings > Developer.
 2. Copy `apps/web/.env.example` to `apps/web/.env.local` and set `INTERVALS_API_KEY`,
-   `TRAINIQ_WEATHER_LATITUDE`, `TRAINIQ_WEATHER_LONGITUDE` (decimal coordinates)
-   and `TRAINIQ_WEATHER_TIMEZONE` (IANA timezone, e.g. `America/Toronto`).
-   Location is explicit prototype configuration; it is not inferred from Intervals.
-3. Start the web development server and open
-   http://localhost:3000/api/intervals/planning-context to inspect `{ context, plan }`.
+   `TRAINIQ_WEATHER_LATITUDE`, `TRAINIQ_WEATHER_LONGITUDE` and
+   `TRAINIQ_WEATHER_TIMEZONE` (IANA timezone, e.g. `America/Toronto`).
+3. Run `pnpm --filter web dev`. Web and RN now use the same server generation path.
 
-The route reads recent training data and the upcoming week's calendar and weather,
-using the configured timezone to identify next Monday–Sunday. It is
-available only in development and returns 404 otherwise. The API key stays
-server-side: never commit `.env.local`, expose the key through `NEXT_PUBLIC_*`, or
-embed it in the mobile app. No provider credentials are needed for the mock screens
-or automated tests.
+The backend targets next Monday–Sunday in the configured timezone. The key must
+never be committed, exposed through `NEXT_PUBLIC_*`, or embedded in mobile.
+Outside `NODE_ENV=development`, the planning procedure refuses access before any
+provider request. The old `/api/intervals/planning-context` inspection route was
+removed; only `WeeklyPlan` is exposed by `/api/trpc/planning.getWeeklyPlan`.
+
+Mobile backend URL lives in `apps/mobile/src/config/backend.ts`:
+
+- iOS simulator: `http://localhost:3000`.
+- Android emulator: `http://10.0.2.2:3000`.
+- Physical device: replace the URL with `http://<your-computer-LAN-IP>:3000`, use
+  the same trusted network, and run `pnpm --filter web dev --hostname 0.0.0.0`.
+  Allow local network access through the device permissions and computer firewall.
+
+This is local/LAN development only; do not publish or tunnel this unauthenticated
+server. Loading, server/network errors and manual retry are supported. RN cancels
+its request after 30 seconds or when the screen unmounts.
 
 Daily weather maps only clear skies, clouds and ordinary rain/drizzle/showers.
 Open-Meteo reports the most severe condition of the day, not the training time slot.
@@ -154,8 +175,17 @@ pnpm --filter @trainiq/recommendation --filter @trainiq/intervals --filter @trai
 # Mobile tests (Jest)
 pnpm --filter mobile test --runInBand
 
-# Typecheck shared packages and both apps
-pnpm --filter @trainiq/types --filter @trainiq/domain --filter @trainiq/recommendation --filter @trainiq/intervals --filter @trainiq/weather --filter web --filter mobile exec tsc --noEmit
+# Typecheck server/shared packages with the Web workspace compiler
+pnpm --filter web exec tsc -p ../../packages/types/tsconfig.json --noEmit
+pnpm --filter web exec tsc -p ../../packages/domain/tsconfig.json --noEmit
+pnpm --filter web exec tsc -p ../../packages/recommendation/tsconfig.json --noEmit
+pnpm --filter web exec tsc -p ../../packages/intervals/tsconfig.json --noEmit
+pnpm --filter web exec tsc -p ../../packages/weather/tsconfig.json --noEmit
+pnpm --filter web exec next typegen
+pnpm --filter web exec tsc --noEmit
+
+# Mobile typecheck: known boundary limitation described below
+pnpm --filter mobile exec tsc --noEmit
 
 # App lint and patch whitespace
 pnpm --filter web lint
@@ -163,11 +193,16 @@ pnpm --filter mobile lint
 git diff --check
 ```
 
-Known validation gap: the mobile typecheck currently fails on the planner's
-development logging reference to `process.env.VITEST`. Mobile tests and lint pass;
-the logging dependency is a separate cleanup task.
+CI explicitly uses the Web TypeScript compiler for server packages; the root
+compiler can resolve to mobile TypeScript 6 through hoisting and changes ambient
+type discovery. Weather is included in the CI typecheck.
 
 Tests protect planner decisions, classification rules and external-data boundaries.
+The mobile typecheck is not yet enabled in CI: its type-only reference to the tRPC
+router makes TypeScript traverse server sources, whose Node/Web globals are absent
+from the RN type environment (`process`, `btoa`, and the server fetch URL signature).
+No server implementation is imported at runtime. Isolating emitted router declarations
+is deferred rather than adding Node globals to the mobile app or changing the planner.
 Changes affecting screens also receive manual verification on web and iOS.
 
 ## AI-assisted development
