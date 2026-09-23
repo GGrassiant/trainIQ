@@ -50,21 +50,6 @@ function formatLocalDate(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-/** The Monday (local time) of the week containing `date`, as "YYYY-MM-DD" — matches this repo's Monday-first week convention. */
-export function mondayOfLocalWeek(date: Date): string {
-  const dayOfWeek = date.getDay(); // 0 (Sun) - 6 (Sat), local time
-  const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-  const monday = new Date(date.getFullYear(), date.getMonth(), date.getDate() + diffToMonday);
-  return formatLocalDate(monday);
-}
-
-/** The Monday (local time) of the week following the one containing `date`, as "YYYY-MM-DD" — used to plan the athlete's upcoming week rather than the current one. */
-export function mondayOfNextLocalWeek(date: Date): string {
-  const [year, month, day] = mondayOfLocalWeek(date).split("-").map(Number);
-  const nextMonday = new Date(year, month - 1, day + 7);
-  return formatLocalDate(nextMonday);
-}
-
 function addDaysToLocalDate(dateStr: string, days: number): string {
   const [year, month, day] = dateStr.split("-").map(Number);
   return formatLocalDate(new Date(year, month - 1, day + days));

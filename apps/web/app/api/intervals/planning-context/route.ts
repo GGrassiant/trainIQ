@@ -1,18 +1,10 @@
 import { planWeek } from "@trainiq/recommendation";
-import { buildPlanningContextFromIntervals, isIntervalsDemoRouteEnabled, mondayOfNextLocalWeek } from "@/lib/server/intervals-planning-context";
+import { isIntervalsDemoRouteEnabled } from "@/lib/server/intervals-planning-context";
+import { buildServerPlanningContext } from "@/lib/server/planning-context";
 
 /**
- * Local-development-only demonstration route: builds a PlanningContext from
- * real Intervals.icu athlete-identity, wellness, activity, and workout-library
- * data, and runs it through planWeek() unchanged, to show planWeek() has no
- * idea any of that came from Intervals.icu. `athlete.sports`, goals,
- * availability, and weather remain TrainIQ-owned mock data. Requires
- * INTERVALS_API_KEY to be set (see apps/web/.env.example). Not part of the
- * product UI yet — see README for V0.3 scope.
- *
- * Disabled everywhere except `next dev` (see isIntervalsDemoRouteEnabled):
- * fails closed with a 404 before touching Intervals.icu or athlete data, so
- * this can never expose real training data if the app is deployed.
+ * Development-only composition of Intervals.icu and Open-Meteo data.
+ * The guard runs before provider requests so production cannot expose athlete data.
  */
 export async function GET(): Promise<Response> {
   if (!isIntervalsDemoRouteEnabled()) {
@@ -20,8 +12,7 @@ export async function GET(): Promise<Response> {
   }
 
   try {
-    const weekStartDate = mondayOfNextLocalWeek(new Date());
-    const context = await buildPlanningContextFromIntervals(weekStartDate);
+    const context = await buildServerPlanningContext(new Date());
     const plan = planWeek(context);
     return Response.json({ context, plan });
   } catch (error) {
