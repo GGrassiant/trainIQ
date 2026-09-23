@@ -19,8 +19,8 @@ When no compatible workout exists, it returns an explicit `unresolved` slot; it
 does not generate a replacement workout.
 
 **Web and React Native still use mock planning inputs.** A separate,
-development-only Next.js route assembles real Intervals.icu data server-side and
-runs the same engine.
+development-only Next.js route assembles real Intervals.icu and Open-Meteo data
+server-side and runs the same engine.
 
 | Input or capability | Development server integration | Web / RN screens |
 | --- | --- | --- |
@@ -29,16 +29,15 @@ runs the same engine.
 | Workout library | Real — Intervals.icu, with TrainIQ classification | Mock |
 | Scheduled workouts | Real — Intervals.icu calendar, read-only context | Empty mock context; not displayed |
 | Planning preferences, goals and availability | Mock; TrainIQ-owned | Mock |
-| Weather | Mock | Mock |
+| Weather | Real — Open-Meteo daily conditions | Mock |
 | Weekly recommendation | Shared `planWeek()` engine | Shared `planWeek()` engine |
 
 Scheduled workouts describe what is already planned; they do not automatically
 become fixed commitments and do not influence `planWeek()` in V1. Workout
 classification uses provisional, deterministic rules based on structured zone data.
 
-There is no calendar write-back, workout generation, OAuth, persistence, live
-weather integration or runtime LLM call. The real-data route is not a production
-planning API.
+There is no calendar write-back, workout generation, OAuth, persistence or runtime
+LLM call. The real-data route is not a production planning API.
 
 ## Architecture
 
@@ -48,11 +47,12 @@ server route provides a separate path through the external-data boundary:
 ```text
 Web / React Native → mock PlanningContext → planWeek() → WeeklyPlan
 
-Intervals.icu → server client + mappers → PlanningContext → planWeek() → WeeklyPlan
+Intervals.icu + Open-Meteo → clients + mappers → PlanningContext → planWeek() → WeeklyPlan
 ```
 
-External payloads and provider-specific interpretation stay in `@trainiq/intervals`.
-The planner receives TrainIQ domain types and performs no API calls. Its result is
+External payloads and provider-specific interpretation stay in `@trainiq/intervals`
+and `@trainiq/weather`. The planner receives TrainIQ domain types and performs no
+API calls. Its result is
 deterministic for a given context; current development instrumentation still emits
 logs.
 
@@ -69,6 +69,7 @@ packages/
   domain/          Mock data and PlanningContext composition
   recommendation/  Deterministic weekly planning
   intervals/       Read-only client, boundary validation, mappers and classification
+  weather/         Open-Meteo client, boundary validation and daily conditions
 ```
 
 The monorepo uses pnpm workspaces. Shared packages export TypeScript source directly;
@@ -112,32 +113,49 @@ pnpm --filter mobile ios
 
 To start Metro separately, run `pnpm --filter mobile start` in another terminal.
 
-### Optional Intervals.icu development route
+### Optional real-data development route
 
 1. Create a personal API key in Intervals.icu under Settings > Developer.
-2. Copy `apps/web/.env.example` to `apps/web/.env.local` and set `INTERVALS_API_KEY`.
+2. Copy `apps/web/.env.example` to `apps/web/.env.local` and set `INTERVALS_API_KEY`,
+   `TRAINIQ_WEATHER_LATITUDE`, `TRAINIQ_WEATHER_LONGITUDE` (decimal coordinates)
+   and `TRAINIQ_WEATHER_TIMEZONE` (IANA timezone, e.g. `America/Toronto`).
+   Location is explicit prototype configuration; it is not inferred from Intervals.
 3. Start the web development server and open
    http://localhost:3000/api/intervals/planning-context to inspect `{ context, plan }`.
 
-The route reads recent training data and the upcoming week's calendar. It is
+The route reads recent training data and the upcoming week's calendar and weather,
+using the configured timezone to identify next Monday–Sunday. It is
 available only in development and returns 404 otherwise. The API key stays
 server-side: never commit `.env.local`, expose the key through `NEXT_PUBLIC_*`, or
 embed it in the mobile app. No provider credentials are needed for the mock screens
 or automated tests.
+
+Daily weather maps only clear skies, clouds and ordinary rain/drizzle/showers.
+Open-Meteo reports the most severe condition of the day, not the training time slot.
+Missing forecasts, unsupported conditions and provider failures become `unknown`
+with server diagnostics; the planner continues without weather adaptation for those
+days. There is no fallback to mock or clear weather. Invalid location configuration
+is reported as a configuration error. Wind, gusts, temperature thresholds and
+weather-driven rescheduling are deferred; the existing cycling rain rule is unchanged.
+
+Weather data: [Open-Meteo](https://open-meteo.com/), licensed under
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The free endpoint is for
+[non-commercial use](https://open-meteo.com/en/terms); a commercial deployment
+requires revisiting the service plan.
 
 ## Validation
 
 Run from the repository root:
 
 ```sh
-# Shared engine, Intervals boundary and web integration tests (Vitest)
-pnpm --filter @trainiq/recommendation --filter @trainiq/intervals --filter web test
+# Shared engine, provider boundaries and web integration tests (Vitest)
+pnpm --filter @trainiq/recommendation --filter @trainiq/intervals --filter @trainiq/weather --filter web test
 
 # Mobile tests (Jest)
 pnpm --filter mobile test --runInBand
 
 # Typecheck shared packages and both apps
-pnpm --filter @trainiq/types --filter @trainiq/domain --filter @trainiq/recommendation --filter @trainiq/intervals --filter web --filter mobile exec tsc --noEmit
+pnpm --filter @trainiq/types --filter @trainiq/domain --filter @trainiq/recommendation --filter @trainiq/intervals --filter @trainiq/weather --filter web --filter mobile exec tsc --noEmit
 
 # App lint and patch whitespace
 pnpm --filter web lint

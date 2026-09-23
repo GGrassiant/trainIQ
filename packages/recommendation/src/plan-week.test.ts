@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildMockPlanningContext } from "@trainiq/domain";
+import { DAYS_OF_WEEK } from "@trainiq/types";
 import type { PlanningContext, RecommendedTrainingDay, TrainingDay } from "@trainiq/types";
 import { planWeek } from "./plan-week";
 
@@ -29,6 +30,36 @@ function reasoningOf(day: TrainingDay): string[] {
 }
 
 describe("planWeek", () => {
+  describe("weather conditions", () => {
+    function contextWithCondition(condition: "clear" | "rain" | "unknown"): PlanningContext {
+      const context = buildMockPlanningContext();
+      context.trainingLoad = { ...context.trainingLoad, tsb: 10 };
+      context.weather = { days: { ...context.weather.days } };
+      for (const day of DAYS_OF_WEEK) context.weather.days[day] = { condition };
+      return context;
+    }
+
+    it("keeps the existing rain downgrade for hard cycling without changing running or strength sessions", () => {
+      const clear = planWeek(contextWithCondition("clear"));
+      const rainy = planWeek(contextWithCondition("rain"));
+      const cyclingQuality = clear.days.find((day) => day.sport === "cycling" && isQuality(day))!;
+      expect(cyclingQuality).toBeDefined();
+      const downgraded = rainy.days.find((day) => day.dayOfWeek === cyclingQuality.dayOfWeek);
+      expect(downgraded).toMatchObject({ status: "recommended", sport: "cycling", workout: { intensity: "easy" } });
+      expect(downgraded && reasoningOf(downgraded).some((reason) => reason.includes("Rain"))).toBe(true);
+      expect(rainy.days.filter((day) => day.sport !== "cycling")).toEqual(clear.days.filter((day) => day.sport !== "cycling"));
+      expect(rainy.days.find((day) => day.status === "fixed")).toEqual(clear.days.find((day) => day.status === "fixed"));
+    });
+
+    it("plans normally with unknown weather, without calling it favorable or adapting any session", () => {
+      const clear = planWeek(contextWithCondition("clear"));
+      const unknown = planWeek(contextWithCondition("unknown"));
+      expect(clear.days.some((day) => day.sport === "cycling" && isQuality(day))).toBe(true);
+      expect(unknown).toEqual({ ...clear, rationale: clear.rationale.replace(" and the weather is favorable", "") });
+      expect(unknown.rationale).not.toContain("weather is favorable");
+    });
+  });
+
   describe("normal availability", () => {
     it("keeps the Tuesday running club as a fixed running session", () => {
       const plan = planWeek(buildMockPlanningContext());

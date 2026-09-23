@@ -4,7 +4,7 @@ import { buildReasoning } from "./build-reasoning";
 
 const dayAvailability: Availability["days"]["wednesday"] = { isAvailable: true, maxDurationMinutes: 90 };
 
-const fairWeather: DayWeather = { condition: "clear", temperatureC: 18, precipitationChance: 10 };
+const fairWeather: DayWeather = { condition: "clear" };
 
 const baseTrainingLoad: TrainingLoadContext = { ctl: 58, atl: 90, tsb: -31.955060000000003, recentSessions: [] };
 

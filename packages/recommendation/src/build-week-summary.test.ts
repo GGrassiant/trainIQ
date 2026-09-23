@@ -4,13 +4,13 @@ import { buildWeekSummary } from "./build-week-summary";
 
 const weather: WeatherContext = {
   days: {
-    monday: { condition: "clear", temperatureC: 18, precipitationChance: 10 },
-    tuesday: { condition: "clear", temperatureC: 18, precipitationChance: 10 },
-    wednesday: { condition: "clear", temperatureC: 18, precipitationChance: 10 },
-    thursday: { condition: "clear", temperatureC: 18, precipitationChance: 10 },
-    friday: { condition: "clear", temperatureC: 18, precipitationChance: 10 },
-    saturday: { condition: "clear", temperatureC: 18, precipitationChance: 10 },
-    sunday: { condition: "clear", temperatureC: 18, precipitationChance: 10 },
+    monday: { condition: "clear" },
+    tuesday: { condition: "clear" },
+    wednesday: { condition: "clear" },
+    thursday: { condition: "clear" },
+    friday: { condition: "clear" },
+    saturday: { condition: "clear" },
+    sunday: { condition: "clear" },
   },
 };
 
