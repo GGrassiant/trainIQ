@@ -35,9 +35,11 @@ Scheduled workouts describe what is already planned; they do not automatically
 become fixed commitments and do not influence `planWeek()` in V1. Workout
 classification uses provisional, deterministic rules based on structured zone data.
 
-There is no authentication, user persistence, calendar write-back, workout generation,
-OAuth or runtime LLM call. The real backend is development-only, not multi-user or
-production-ready. Accepting a plan still only changes local UI state.
+Web GitHub authentication uses Supabase Auth with server-controlled HttpOnly cookies
+(see [Web setup](apps/web/README.md)). It does not protect or personalize planning.
+There is no business-user persistence, calendar write-back, workout generation,
+Intervals OAuth or runtime LLM call. The planning backend is development-only, not
+multi-user or production-ready. Accepting a plan still only changes local UI state.
 
 ## Architecture
 

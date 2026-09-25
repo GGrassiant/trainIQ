@@ -27,3 +27,4 @@ reader doesn't have to reverse-engineer it from the code.
 | [0002](0002-scheduled-workouts.md) | Scheduled workouts are planning context, not fixed commitments | Accepted |
 | [0003](0003-planning-engine-contract.md) | Planning operates on an explicit domain context | Accepted |
 | [0004](0004-next-backend-planning-source-of-truth.md) | The Next.js backend is the weekly planning source of truth | Accepted |
+| [0005](0005-supabase-auth-web-session.md) | Supabase identity with a server-controlled Web session | Accepted |

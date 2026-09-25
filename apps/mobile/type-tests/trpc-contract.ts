@@ -9,6 +9,21 @@ type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B
 type Assert<T extends true> = T;
 type Planning = typeof trpc.planning;
 type Query = Planning['getWeeklyPlan']['query'];
+type AuthQuery = typeof trpc.auth.me.query;
+
+export type PublicAuthOutput = Assert<
+  Equal<Awaited<ReturnType<AuthQuery>>, { id: string } | null>
+>;
+
+export async function assertAuthContract(query: AuthQuery) {
+  const user = await query();
+  if (user) {
+    // @ts-expect-error Auth exposes only the public identifier.
+    user.access_token;
+    // @ts-expect-error Provider/session data must never enter the mobile contract.
+    user.email;
+  }
+}
 
 // Compiled by the mobile typecheck; no runtime calls or Jest execution.
 export type WeeklyPlanOutput = Assert<

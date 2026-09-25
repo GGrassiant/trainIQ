@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
+    "@supabase/ssr": "0.12.7",
+    "@supabase/supabase-js": "2.117.1",
     "@trainiq/domain": "workspace:*",
     "@trainiq/intervals": "workspace:*",
     "@trainiq/recommendation": "workspace:*",

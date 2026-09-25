@@ -1,8 +1,9 @@
 import "server-only";
 import { initTRPC, TRPCError } from "@trpc/server";
 import { generateWeeklyPlan } from "../weekly-plan";
+import type { RpcContext } from "./context-type";
 
-const t = initTRPC.create({
+const t = initTRPC.context<RpcContext>().create({
   // Even in development, HTTP clients do not need server stack traces.
   errorFormatter({ shape }) {
     return { ...shape, data: { ...shape.data, stack: undefined } };
@@ -10,6 +11,9 @@ const t = initTRPC.create({
 });
 
 export const appRouter = t.router({
+  auth: t.router({
+    me: t.procedure.query(({ ctx }): { id: string } | null => ctx.user ? { id: ctx.user.id } : null),
+  }),
   planning: t.router({
     getWeeklyPlan: t.procedure.query(async () => {
       // Shared by the HTTP handler and the local Web caller, before provider access.
