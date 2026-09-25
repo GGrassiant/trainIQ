@@ -2,18 +2,40 @@ import { afterEach, expect, it, vi } from "vitest";
 import { appRouter } from "./router";
 import { GET } from "../../../app/api/trpc/[trpc]/route";
 import { stubProviders } from "../test-support/providers";
+import { NextRequest } from "next/server";
+import { proxy } from "../../../proxy";
+import { createTRPCContext } from "./context";
+import { ACCESS_TOKEN_HEADER } from "../auth/identity";
 
 vi.mock("server-only", () => ({}));
 afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); vi.restoreAllMocks(); vi.useRealTimers(); });
 
 const request = () => new Request("http://localhost:3000/api/trpc/planning.getWeeklyPlan");
 
+it("serves the public plan through Proxy/HTTP and the server caller when auth configuration is missing", async () => {
+  stubProviders();
+  vi.stubEnv("NODE_ENV", "development");
+  vi.stubEnv("SUPABASE_URL", "");
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-09-28T01:00:00Z"));
+  const incoming = new NextRequest(request());
+  const proxied = await proxy(incoming);
+  expect(proxied.headers.get("x-middleware-next")).toBe("1");
+  const ctx = await createTRPCContext(new Headers({ [ACCESS_TOKEN_HEADER]: "unavailable-identity" }));
+  expect(ctx).toEqual({ user: null });
+  const plan = await appRouter.createCaller(ctx).planning.getWeeklyPlan();
+  expect(plan.weekStartDate).toBe("2026-09-28");
+  const response = await GET(incoming);
+  expect(response.status).toBe(200);
+  expect(await response.json()).toEqual({ result: { data: plan } });
+});
+
 it("returns the same WeeklyPlan locally and over HTTP without exposing its context", async () => {
   stubProviders();
   vi.stubEnv("NODE_ENV", "development");
   vi.useFakeTimers();
   vi.setSystemTime(new Date("2026-09-28T01:00:00Z"));
-  const plan = await appRouter.createCaller({}).planning.getWeeklyPlan();
+  const plan = await appRouter.createCaller({ user: null }).planning.getWeeklyPlan();
   expect(plan.weekStartDate).toBe("2026-09-28");
   expect(plan.days.some(day => day.status === "unresolved")).toBe(true);
   expect(Object.keys(plan).sort()).toEqual([
@@ -29,7 +51,7 @@ it.each(["production", "test"])("refuses %s access before any provider request",
   vi.stubEnv("NODE_ENV", environment);
   const fetch = vi.fn();
   vi.stubGlobal("fetch", fetch);
-  await expect(appRouter.createCaller({}).planning.getWeeklyPlan()).rejects.toMatchObject({ code: "FORBIDDEN" });
+  await expect(appRouter.createCaller({ user: null }).planning.getWeeklyPlan()).rejects.toMatchObject({ code: "FORBIDDEN" });
   expect((await GET(request())).status).toBe(403);
   expect(fetch).not.toHaveBeenCalled();
 });
@@ -40,7 +62,7 @@ it("preserves provider failures on the server without exposing their cause, secr
   const providerError = new Error("secret-key internal-provider-detail");
   const logError = vi.spyOn(console, "error").mockImplementation(() => {});
   vi.stubGlobal("fetch", vi.fn().mockRejectedValue(providerError));
-  await expect(appRouter.createCaller({}).planning.getWeeklyPlan()).rejects.toMatchObject({
+  await expect(appRouter.createCaller({ user: null }).planning.getWeeklyPlan()).rejects.toMatchObject({
     code: "INTERNAL_SERVER_ERROR",
     cause: providerError,
   });

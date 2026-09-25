@@ -4,7 +4,8 @@ import { WeeklyPlanView } from "@/components/weekly-plan-view";
 
 export default async function Home() {
   await connection();
-  const plan = await appRouter.createCaller({}).planning.getWeeklyPlan();
+  // Planning is public; it must not wait for identity resolution.
+  const plan = await appRouter.createCaller({ user: null }).planning.getWeeklyPlan();
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 self-center px-4 py-8">
