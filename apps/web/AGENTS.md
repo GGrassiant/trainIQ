@@ -1,3 +1,6 @@
+The root AGENTS.md Git authorization rule applies here: the generated guidance
+below does not authorize committing, pushing, creating tags, or rewriting history.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know
