@@ -7,6 +7,10 @@ apply plugin: "com.facebook.react"
  * By default you don't need to apply any configuration, just uncomment the lines you need.
  */
 react {
+    // pnpm hoists native tooling to the workspace root.
+    reactNativeDir = file("../../../../node_modules/react-native")
+    codegenDir = file("../../../../node_modules/@react-native/codegen")
+
     /* Folders */
     //   The root of your project, i.e. where "package.json" lives. Default is '../..'
     // root = file("../../")

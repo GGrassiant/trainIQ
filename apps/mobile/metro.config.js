@@ -8,8 +8,8 @@ const workspaceRoot = path.resolve(projectRoot, '../..');
  * Metro configuration
  * https://reactnative.dev/docs/metro
  *
- * Extended for the pnpm workspace: the monorepo root is watched so Metro can
- * see and resolve the shared packages/* source, which lives outside apps/mobile.
+ * Extended for the pnpm workspace: dependencies are hoisted to the monorepo
+ * root (see .npmrc), so Metro must watch and resolve from there too.
  *
  * @type {import('@react-native/metro-config').MetroConfig}
  */
