@@ -31,22 +31,13 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Lint
-        run: pnpm -r --if-present run lint
+        run: pnpm -r run lint
 
-      - name: Generate mobile tRPC contract
-        run: pnpm --filter web generate:trpc-types
-
-      # Use the Web compiler for server packages; root hoisting can resolve mobile TS 6.
       - name: Typecheck
-        run: |
-          pnpm --filter web exec tsc -p ../../packages/types/tsconfig.json --noEmit
-          pnpm --filter web exec tsc -p ../../packages/domain/tsconfig.json --noEmit
-          pnpm --filter web exec tsc -p ../../packages/recommendation/tsconfig.json --noEmit
-          pnpm --filter web exec tsc -p ../../packages/intervals/tsconfig.json --noEmit
-          pnpm --filter web exec tsc -p ../../packages/weather/tsconfig.json --noEmit
-          pnpm --filter web exec next typegen
-          pnpm --filter web exec tsc --noEmit
-          pnpm --filter mobile typecheck
+        run: pnpm -r run typecheck
 
       - name: Test
-        run: pnpm -r --if-present run test
+        run: pnpm --filter mobile test
+
+      - name: Build Web
+        run: pnpm --filter web build

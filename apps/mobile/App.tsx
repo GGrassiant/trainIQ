@@ -2,22 +2,32 @@
  * @format
  */
 
-import { StatusBar, useColorScheme } from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { PaperProvider } from 'react-native-paper';
-import { WeeklyPlanScreen } from './src/screens/WeeklyPlanScreen';
+import { StatusBar, StyleSheet, Text, useColorScheme } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
+  const textColor = isDarkMode ? '#fff' : '#000';
 
   return (
-    <SafeAreaProvider>
-      <PaperProvider>
-        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-        <WeeklyPlanScreen />
-      </PaperProvider>
-    </SafeAreaProvider>
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+      <Text style={[styles.title, { color: textColor }]}>TrainIQ</Text>
+      <Text style={{ color: textColor }}>Mobile</Text>
+    </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '600',
+  },
+});
 
 export default App;

@@ -7,44 +7,23 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run",
-    "generate:trpc-types": "tsc -p tsconfig.trpc.json"
+    "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
-    "@base-ui/react": "^1.7.0",
-    "@supabase/ssr": "0.12.7",
-    "@supabase/supabase-js": "2.117.1",
-    "@trainiq/domain": "workspace:*",
-    "@trainiq/intervals": "workspace:*",
-    "@trainiq/recommendation": "workspace:*",
-    "@trainiq/types": "workspace:*",
-    "@trainiq/weather": "workspace:*",
-    "@trpc/server": "11.19.0",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "lucide-react": "^1.34.0",
-    "next": "16.3.6",
+    "next": "16.3.8",
     "react": "19.2.8",
-    "react-dom": "19.2.8",
-    "server-only": "0.0.1",
-    "shadcn": "^4.19.0",
-    "tailwind-merge": "^3.6.0",
-    "tw-animate-css": "^1.4.0"
+    "react-dom": "19.2.8"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.3.3",
-    "postcss": "^8.5.26",
-    "tailwindcss": "^4.3.3",
-    "typescript": "^5",
-    "vitest": "^4.1.11"
+    "eslint-config-next": "16.3.8",
+    "typescript": "5.9.3"
   },
   "packageManager": "pnpm@10.11.0",
   "engines": {
-    "node": ">=22.13.0"
+    "node": "^22.13.0 || ^24.3.0 || >=26.0.0"
   }
 }
