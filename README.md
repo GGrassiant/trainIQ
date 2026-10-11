@@ -1,5 +1,7 @@
 # TrainIQ
 
+See [ROADMAP.md](ROADMAP.md) for the current product direction.
+
 TrainIQ is an experimental training-planning app built with:
 
 - Next.js
