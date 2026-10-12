@@ -49,6 +49,8 @@ Prefer idiomatic, readable TypeScript over cleverness.
   better or needs early exit.
 - Avoid nested ternaries and clever one-liners. Prefer early returns and
   well-named intermediate variables.
+- Declare functions, components and constants before their consumers; don't
+  rely on hoisting (`@typescript-eslint/no-use-before-define` in both apps).
 - Keep business rules visible rather than hiding them behind abstractions.
 - Page and component files handle orchestration and rendering; reusable
   helpers such as formatters live outside them.

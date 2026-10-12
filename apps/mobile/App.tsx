@@ -1,33 +1,29 @@
-/**
- * @format
- */
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { StatusBar, StyleSheet, useColorScheme } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import TrainingOverviewScreen from './TrainingOverviewScreen';
 
-import { StatusBar, StyleSheet, Text, useColorScheme } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-
-function App() {
-  const isDarkMode = useColorScheme() === 'dark';
-  const textColor = isDarkMode ? '#fff' : '#000';
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <Text style={[styles.title, { color: textColor }]}>TrainIQ</Text>
-      <Text style={{ color: textColor }}>Mobile</Text>
-    </SafeAreaView>
-  );
-}
+const queryClient = new QueryClient();
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '600',
   },
 });
+
+function App() {
+  const isDarkMode = useColorScheme() === 'dark';
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <SafeAreaProvider>
+        <SafeAreaView style={styles.container}>
+          <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+          <TrainingOverviewScreen />
+        </SafeAreaView>
+      </SafeAreaProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;
