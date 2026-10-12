@@ -27,6 +27,19 @@ contracts, providers or feature folders. An abstraction has to earn its place.
 - Do not commit, push, create tags, or rewrite Git history unless explicitly requested in the current turn.
 - Never commit secrets or `.env*` files.
 
+## Application architecture
+
+Keep application code business-oriented and idiomatic: a reader should
+primarily need to understand TrainIQ, not an internal framework built around it.
+
+- Prefer simple React and platform-native patterns over custom infrastructure.
+  Generic concerns (fetching, caching, state, formatting, localization,
+  validation, serialization) use established libraries or platform primitives.
+- Create services or adapters only to isolate real external-system complexity
+  or domain-specific behavior, never just to add a layer.
+- Keep API and domain data locale-neutral. Localize only in the presentation
+  layer, using an explicit locale.
+
 ## Code style
 
 Prefer idiomatic, readable TypeScript over cleverness.
@@ -37,6 +50,10 @@ Prefer idiomatic, readable TypeScript over cleverness.
 - Avoid nested ternaries and clever one-liners. Prefer early returns and
   well-named intermediate variables.
 - Keep business rules visible rather than hiding them behind abstractions.
+- Page and component files handle orchestration and rendering; reusable
+  helpers such as formatters live outside them.
+- Prefer clear names over comments. Comment only non-obvious external
+  constraints (API conventions, framework requirements), never to narrate code.
 - When an external API is integrated, keep its raw types separate from
   TrainIQ's own types and translate between them explicitly.
 
