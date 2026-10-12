@@ -19,12 +19,12 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 10.11.0
+          version: 10.34.6
 
       - name: Setup Node
         uses: actions/setup-node@v5
         with:
-          node-version: 22.13.0
+          node-version: 22.23.3
           cache: pnpm
 
       - name: Install dependencies
@@ -32,6 +32,9 @@ jobs:
 
       - name: Lint
         run: pnpm -r run lint
+
+      - name: Check Mobile formatting
+        run: pnpm --filter mobile format:check
 
       - name: Typecheck
         run: pnpm -r run typecheck
