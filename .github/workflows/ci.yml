@@ -37,7 +37,9 @@ jobs:
         run: pnpm -r run typecheck
 
       - name: Test
-        run: pnpm --filter mobile test
+        run: |
+          pnpm --filter mobile test
+          pnpm --filter web test
 
       - name: Build Web
         run: pnpm --filter web build
