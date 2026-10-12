@@ -27,7 +27,9 @@ version).
 pnpm install
 ```
 
-Web app (http://localhost:3000):
+Web app (http://localhost:3000). Copy `apps/web/.env.example` to
+`apps/web/.env.local` and set `INTERVALS_API_KEY` (Intervals.icu → Settings →
+Developer Settings), then:
 
 ```sh
 pnpm --filter web dev
@@ -47,12 +49,23 @@ pnpm --filter mobile ios     # or: pnpm --filter mobile android
 pnpm -r run lint
 pnpm -r run typecheck
 pnpm --filter mobile test
+pnpm --filter web test
 ```
 
 TypeScript is pinned to 5.9.3 in both apps; no shared config is needed.
 ESLint remains separate (Web 9, Mobile 8) because React Native 0.87.1
 depends on eslint-plugin-ft-flow 2.x, which requires ESLint 8 and uses APIs
 removed in ESLint 9, including in its flat config.
+
+## AI-assisted development
+
+TrainIQ is intentionally developed with an AI-assisted workflow.
+
+ChatGPT is used for product thinking and technical design, Claude Code for
+implementation, and Codex for independent code review.
+
+Product decisions, architecture, verification, and Git history remain owned by
+the project author. AI tools are development tools, not runtime dependencies.
 
 ## Previous prototype
 
