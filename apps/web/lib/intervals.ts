@@ -1,4 +1,6 @@
 import "server-only";
+import { tz } from "@date-fns/tz";
+import { format } from "date-fns";
 
 // Athlete id 0 means "the athlete who owns the API key".
 const ATHLETE_URL = "https://intervals.icu/api/v1/athlete/0";
@@ -56,8 +58,6 @@ async function fetchIntervals<T>(apiKey: string, path: string): Promise<T> {
   return response.json();
 }
 
-// Form (CTL - ATL) is computed before rounding, so it can differ by 1 from
-// the displayed Fitness - Fatigue.
 function toTrainingState(wellness: IntervalsWellness): TrainingState {
   const ctl = wellness.ctl ?? null;
   const atl = wellness.atl ?? null;
@@ -85,10 +85,6 @@ function toActivity(activity: IntervalsActivity): Activity {
   };
 }
 
-function formatLocalDate(date: Date, timeZone: string): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone }).format(date);
-}
-
 export async function getTrainingOverview(): Promise<TrainingOverview | null> {
   const apiKey = process.env.INTERVALS_API_KEY;
   if (!apiKey) {
@@ -100,7 +96,7 @@ export async function getTrainingOverview(): Promise<TrainingOverview | null> {
     if (!athlete.timezone) {
       throw new Error("Intervals.icu athlete has no timezone");
     }
-    const today = formatLocalDate(new Date(), athlete.timezone);
+    const today = format(new Date(), "yyyy-MM-dd", { in: tz(athlete.timezone) });
 
     const [wellness, activities] = await Promise.all([
       fetchIntervals<IntervalsWellness>(apiKey, `/wellness/${today}`),
