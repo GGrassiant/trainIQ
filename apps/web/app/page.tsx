@@ -1,21 +1,20 @@
-import { connection } from "next/server";
-import { formatLocalActivityDate } from "../lib/formatters/date";
-import { formatActivityDuration } from "../lib/formatters/duration";
-import { getTrainingOverview } from "../lib/intervals";
+import { connection } from 'next/server';
+import { formatLocalActivityDate } from '../lib/formatters/date';
+import { formatActivityDuration } from '../lib/formatters/duration';
+import { getTrainingOverview } from '../lib/intervals';
 
-const LOCALE = "en-US";
-const MISSING = "—";
+const LOCALE = 'en-US';
+const MISSING = '—';
 
 const numberFormat = new Intl.NumberFormat(LOCALE);
 
 export default async function Home() {
-  // Render on every request so the dashboard never shows a build-time snapshot.
   await connection();
 
   const overview = await getTrainingOverview();
 
   return (
-    <main style={{ fontFamily: "sans-serif", padding: "2rem" }}>
+    <main style={{ fontFamily: 'sans-serif', padding: '2rem' }}>
       <h1>TrainIQ</h1>
 
       {overview === null ? (
@@ -23,7 +22,7 @@ export default async function Home() {
       ) : (
         <>
           <h2>Current training state</h2>
-          <table style={{ textAlign: "left", borderSpacing: "1.5rem 0.25rem" }}>
+          <table style={{ textAlign: 'left', borderSpacing: '1.5rem 0.25rem' }}>
             <tbody>
               <tr>
                 <th scope="row">Fitness</th>
@@ -56,7 +55,7 @@ export default async function Home() {
           {overview.recentActivities.length === 0 ? (
             <p>No activities yet.</p>
           ) : (
-            <table style={{ textAlign: "left", borderSpacing: "1.5rem 0.25rem" }}>
+            <table style={{ textAlign: 'left', borderSpacing: '1.5rem 0.25rem' }}>
               <thead>
                 <tr>
                   <th>Date</th>

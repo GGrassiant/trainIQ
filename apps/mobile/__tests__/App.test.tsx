@@ -1,15 +1,18 @@
-import { Text } from 'react-native';
-import ReactTestRenderer, { act } from 'react-test-renderer';
+import { render, screen } from '@testing-library/react-native';
 import App from '../App';
 
-test('renders the app name and platform', async () => {
-  let renderer!: ReactTestRenderer.ReactTestRenderer;
-  await act(async () => {
-    renderer = ReactTestRenderer.create(<App />);
-  });
+jest.mock(
+  'react-native-safe-area-context',
+  () => require('react-native-safe-area-context/jest/mock').default,
+);
 
-  const texts = renderer.root
-    .findAllByType(Text)
-    .map(node => node.props.children);
-  expect(texts).toEqual(['TrainIQ', 'Mobile']);
+// TanStack Query starts a five-minute cache cleanup timer when App unmounts.
+jest.useFakeTimers();
+
+test('shows a loading indicator while the training overview is fetched', async () => {
+  jest.spyOn(globalThis, 'fetch').mockReturnValue(new Promise(() => {}));
+
+  await render(<App />);
+
+  expect(screen.getByLabelText('Loading training data')).toBeOnTheScreen();
 });
